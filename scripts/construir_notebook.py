@@ -421,6 +421,18 @@ print("Modos imaginarios:", val["imaginary_mode_count"], "→", "punto de silla 
 ''')
 
 md(r"""
+**Qué nos dice la geometría del estado de transición.** En el TS el fósforo está a la misma
+distancia de los dos oxígenos (≈ 2.1–2.2 Å de O6 y de O3β): es un TS **concertado y "en
+línea"**, el fosfato pasa de un oxígeno al otro invirtiendo sus tres oxígenos como un
+paraguas. El protón del O6, en cambio, **todavía no se ha movido** (sigue a ~1.07 Å de O6).
+Solo después de cruzar la cima, cuando el enlace P–O6 ya está formado, el protón salta a
+Asp205: el camino baja por una "meseta" hasta ξ ≈ 1 Å y allí termina de caer. Así que, en este
+modelo, Asp205 actúa de base **tras** la transferencia del fosforilo, no antes; en la
+literatura de las hexoquinasas se discuten ambas posibilidades, y esa discusión es un buen
+ejemplo de por qué los mecanismos se estudian con simulaciones.
+""")
+
+md(r"""
 **El movimiento del estado de transición.** La frecuencia imaginaria corresponde a una
 vibración que no oscila, sino que "cae" hacia reactivo o hacia producto. Animándola vemos
 literalmente la química: el Pγ se despega del ADP y se pega a la glucosa, y el protón de O6
@@ -564,7 +576,7 @@ code(r'''
 k1, k_1, k2 = 1.0, 50.0, 60.0          # k2 = k_cat ≈ 60 s⁻¹ (glucoquinasa)
 E0 = 0.05                               # µM de enzima
 sim = cin.simulate_mechanism(e0=E0, s0=500.0, k1=k1, k_minus1=k_1, k2=k2, t_end=2.0)
-fig = viz.plot_ode_simulation(sim, t_zoom=(0, 0.05),
+fig = viz.plot_ode_simulation(sim, t_zoom=0.05,
                               subtitle="ES se forma en milisegundos (pre‑estado estacionario) y luego casi no cambia")
 fig;
 ''')

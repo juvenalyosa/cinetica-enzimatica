@@ -173,8 +173,12 @@ def main():
         e_final_minimizada_kcal=st.getPotentialEnergy().value_in_unit(unit.kilocalorie_per_mole),
         protocolo=__doc__,
     )
-    (OUT / "md.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n")
+    (OUT / "md.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     log("listo en %.0f s" % (time.time() - t0))
+
+
+def frame_ps_from_log(t_log):
+    return float(t_log[1] - t_log[0]) if len(t_log) > 1 else 0.0
 
 
 def write_subset(topology, positions, indices, path):
@@ -207,8 +211,9 @@ def analyze(topology, keep_idx, final_positions):
     d = md.compute_distances(traj, pairs) * 10.0
     logdf = pd.read_csv(WORK / "produccion.log")
     n = min(len(logdf), traj.n_frames)
+    t_log = logdf.iloc[:n, 1].values
     df = pd.DataFrame({
-        "tiempo_ps": logdf.iloc[:n, 1].values,
+        "tiempo_ps": t_log - t_log[0] + frame_ps_from_log(t_log),  # tiempo de producción (sin calentamiento ni equilibración)
         "temperatura_K": logdf.iloc[:n]["Temperature (K)"].values,
         "energia_potencial_kJ": logdf.iloc[:n]["Potential Energy (kJ/mole)"].values,
         "densidad_g_mL": logdf.iloc[:n]["Density (g/mL)"].values,

@@ -291,10 +291,10 @@ class ModeloGlucoquinasa:
                     keywords=header, embedding=embedding, workdir=str(work))
 
     # ------------------------------------------------------------------ energía QM/MM completa
-    def energy_gradient(self, xyz, tag="calc", restraint=None, embedding=True):
+    def energy_gradient(self, xyz, tag="calc", restraint=None, embedding=True, eps=None):
         """E_QM/MM y gradiente (kcal/mol, kcal/mol/A).  ``restraint`` = (xi0, k) armónica sobre xi."""
         xyz = np.asarray(xyz, dtype=float)
-        r = self.run(xyz, tag, "1SCF GRAD" + (" PRECISE" if self.precise else ""), embedding=embedding)
+        r = self.run(xyz, tag, "1SCF GRAD" + (" PRECISE" if self.precise else ""), embedding=embedding, eps=eps)
         g_raw = np.asarray(r["aux"]["gradients_kcal_mol_ang"], dtype=float).reshape(-1, 3)
         if g_raw.shape[0] == xyz.shape[0]:
             g = g_raw
@@ -341,27 +341,27 @@ class ModeloGlucoquinasa:
         return rows
 
     # ------------------------------------------------------------------ ASE
-    def ase_atoms(self, xyz, restraint=None, embedding=True, tag="calc"):
+    def ase_atoms(self, xyz, restraint=None, embedding=True, tag="calc", eps=None):
         from ase import Atoms
         from ase.constraints import FixAtoms
 
         atoms = Atoms(symbols=self.symbols, positions=np.asarray(xyz, dtype=float))
         atoms.set_constraint(FixAtoms(indices=sorted(self.fixed)))
-        atoms.calc = CalculadorQMMM(self, restraint=restraint, embedding=embedding, tag=tag)
+        atoms.calc = CalculadorQMMM(self, restraint=restraint, embedding=embedding, tag=tag, eps=eps)
         return atoms
 
-    def optimize(self, xyz, tag, fmax_kcal_a=0.5, steps=600, restraint=None, embedding=True, logfile=None):
+    def optimize(self, xyz, tag, fmax_kcal_a=0.5, steps=600, restraint=None, embedding=True, logfile=None, eps=None):
         """Optimización L-BFGS (ASE) con los anclajes fijos.  fmax en kcal/mol/A."""
         from ase.optimize import LBFGS
 
-        atoms = self.ase_atoms(xyz, restraint=restraint, embedding=embedding, tag=f"{tag}/calc")
+        atoms = self.ase_atoms(xyz, restraint=restraint, embedding=embedding, tag=f"{tag}/calc", eps=eps)
         work = self.work / tag
         work.mkdir(parents=True, exist_ok=True)
         opt = LBFGS(atoms, logfile=str(work / "opt.log") if logfile is None else logfile, maxstep=0.15,
                     trajectory=str(work / "opt.traj"))
         t0 = time.perf_counter()
         converged = opt.run(fmax=fmax_kcal_a * KCAL_TO_EV, steps=steps)
-        e, g, terms = self.energy_gradient(atoms.get_positions(), f"{tag}/final", restraint=restraint, embedding=embedding)
+        e, g, terms = self.energy_gradient(atoms.get_positions(), f"{tag}/final", restraint=restraint, embedding=embedding, eps=eps)
         rc = self.reaction_coordinates(atoms.get_positions())
         _log(f"{tag}: E = {terms['e_qm_kcal'] + terms['e_lj_kcal']:.2f} kcal/mol, xi = {rc['xi']:+.2f} A, "
              f"{opt.get_number_of_steps()} pasos, {'convergido' if converged else 'NO convergido'} "
@@ -398,11 +398,11 @@ class ModeloGlucoquinasa:
         return dict(energies_kcal=energies, coords=coords, converged=bool(converged), steps=opt.get_number_of_steps(),
                     xi=[self.reaction_coordinate(c)[0] for c in coords])
 
-    def dimer(self, xyz_guess, tag="dimer", fmax_kcal_a=0.5, steps=400, mode_guess=None):
+    def dimer(self, xyz_guess, tag="dimer", fmax_kcal_a=0.5, steps=400, mode_guess=None, embedding=True, eps=None):
         """Refinamiento del punto de silla con el método del dímero (solo gradientes)."""
         from ase.mep import DimerControl, MinModeAtoms, MinModeTranslate
 
-        atoms = self.ase_atoms(xyz_guess, tag=f"{tag}/calc")
+        atoms = self.ase_atoms(xyz_guess, tag=f"{tag}/calc", embedding=embedding, eps=eps)
         work = self.work / tag
         work.mkdir(parents=True, exist_ok=True)
         mask = [k not in self.fixed for k in range(self.n_qm)]
@@ -421,7 +421,7 @@ class ModeloGlucoquinasa:
         opt = MinModeTranslate(d_atoms, logfile=str(work / "translate.log"), trajectory=str(work / "dimer.traj"))
         t0 = time.perf_counter()
         converged = opt.run(fmax=fmax_kcal_a * KCAL_TO_EV, steps=steps)
-        e, g, terms = self.energy_gradient(d_atoms.get_positions(), f"{tag}/final")
+        e, g, terms = self.energy_gradient(d_atoms.get_positions(), f"{tag}/final", embedding=embedding, eps=eps)
         rc = self.reaction_coordinates(d_atoms.get_positions())
         _log(f"{tag}: E = {e:.2f} kcal/mol, xi = {rc['xi']:+.2f}, curvatura {d_atoms.get_curvature():.4f} eV/A^2, "
              f"{'convergido' if converged else 'NO convergido'} ({time.perf_counter() - t0:.0f} s)")
@@ -564,9 +564,9 @@ class CalculadorQMMM(__import__("ase.calculators.calculator", fromlist=["Calcula
 
     implemented_properties = ["energy", "forces"]
 
-    def __init__(self, modelo, restraint=None, embedding=True, tag="calc"):
+    def __init__(self, modelo, restraint=None, embedding=True, tag="calc", eps=None):
         super().__init__()
-        self.modelo, self.restraint, self.embedding, self.tag = modelo, restraint, embedding, tag
+        self.modelo, self.restraint, self.embedding, self.tag, self.eps = modelo, restraint, embedding, tag, eps
         self.terms = {}
 
     def calculate(self, atoms=None, properties=("energy",), system_changes=None):
@@ -574,6 +574,6 @@ class CalculadorQMMM(__import__("ase.calculators.calculator", fromlist=["Calcula
 
         super().calculate(atoms, list(properties), all_changes if system_changes is None else system_changes)
         e, g, terms = self.modelo.energy_gradient(self.atoms.get_positions(), self.tag, restraint=self.restraint,
-                                                  embedding=self.embedding)
+                                                  embedding=self.embedding, eps=self.eps)
         self.terms = terms
         self.results = dict(energy=e * KCAL_TO_EV, forces=-g * KCAL_TO_EV)

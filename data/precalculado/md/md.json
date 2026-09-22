@@ -1,0 +1,13 @@
+{
+  "plataforma": "OpenCL",
+  "produccion_ns": 1.0,
+  "calentamiento_ps": 100,
+  "equilibracion_ps": 200,
+  "paso_fs": 2,
+  "cuadro_ps": 10,
+  "n_atomos": 57631,
+  "n_soluto": 7141,
+  "aguas_cristalinas": 0,
+  "protocolo": "Dinámica molecular clásica (OpenMM) del complejo glucoquinasa·glucosa·ATP·Mg2+.\n\nEtapas (todas con Amber ff14SB/GAFF2/TIP3P, PME, 2 fs, enlaces con H restringidos):\n  1. minimización         solvente libre, soluto pesado restringido; luego todo libre\n  2. calentamiento NVT    0 -> 300 K en 100 ps, soluto pesado restringido (5 kcal/mol/A^2)\n  3. equilibración NPT    200 ps, restricciones 5 -> 1 -> 0.2 kcal/mol/A^2\n  4. producción NPT       1 ns libre, 300 K, 1 bar\n\nProductos en data/precalculado/md/ (tamaños pequeños, pensados para GitHub y Colab):\n  minimizado_soluto.pdb        estructura minimizada (proteína + ligandos + iones + aguas cristalinas)\n  trayectoria_soluto.dcd       producción, solo soluto, un cuadro cada 10 ps\n  analisis.csv                 tiempo, T, energías, RMSD, distancias catalíticas\n  final_soluto.pdb             último cuadro (soluto)\n  final_minimizado.pdb         último cuadro minimizado, sistema COMPLETO (punto de partida del QM/MM)\n  md.json                      metadatos y tiempos de cómputo\n",
+  "nota": "Tiempos de cómputo no registrados: el archivo se regeneró tras un fallo de codificación al final de la corrida."
+}
