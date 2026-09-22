@@ -63,10 +63,18 @@ tests/       pytest
 2. `scripts/02_dinamica_molecular.py`: minimización, calentamiento, equilibración NPT y
    1 ns de producción con OpenMM.
 3. `scripts/03_qmmm_reaccion.py`: región QM (glucosa, trifosfato, Asp205, Lys169, Thr228,
-   Mg²⁺ y sus aguas) con PM7 en el potencial electrostático de la enzima más
-   Lennard-Jones QM–MM; escaneo de la coordenada de reacción, NEB con imagen trepadora,
-   método del dímero, frecuencias y descenso desde el TS; y el mismo clúster en vacío con
-   los métodos nativos de MOPAC (SADDLE, TS, FORCETS, IRC).
+   Mg²⁺ y su agua) con PM7 en el potencial electrostático de la enzima más
+   Lennard-Jones QM–MM (optimizador externo con ASE); escaneo de la coordenada de reacción,
+   NEB con imagen trepadora, método del dímero, frecuencias numéricas y descenso desde el TS.
+4. `scripts/03b_qmmm_agua.py` y `scripts/03c_qmmm_agua_validacion.py`: el mismo clúster en
+   agua implícita (COSMO) con los métodos nativos de MOPAC: `SADDLE` (QST2) como estimación,
+   refinamiento con el método del dímero y la palabra clave `TS`, `FORCETS` y frecuencias
+   numéricas; el `IRC` de MOPAC abortó en esa superficie y el camino se obtuvo por descenso
+   desde el TS.
+
+Resultados principales (PM7, entorno fijo, energías electrónicas): barrera en la enzima
+19.1 kcal/mol con una sola frecuencia imaginaria (−149 cm⁻¹); sitio activo en agua
+21.6 kcal/mol; ΔE de reacción +13.7 kcal/mol; distancia Pγ–O6 media en la MD 3.44 Å.
 
 Las barreras PM7 son **semicuantitativas**: el objetivo es entender los conceptos, no
 reproducir el valor experimental con precisión química.

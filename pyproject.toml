@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-sim = ["openmm>=8.1", "py3Dmol>=2.0"]
+sim = ["openmm>=8.1", "py3Dmol>=2.0", "ase>=3.23", "mdtraj>=1.9"]
 dev = ["pytest>=7", "nbformat", "nbconvert", "jupyter"]
 
 [tool.setuptools]

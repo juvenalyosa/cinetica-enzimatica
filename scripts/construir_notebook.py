@@ -17,11 +17,15 @@ CELLS = []
 
 
 def md(text):
-    CELLS.append(nbf.v4.new_markdown_cell(text.strip("\n")))
+    cell = nbf.v4.new_markdown_cell(text.strip("\n"))
+    cell["id"] = f"celda-{len(CELLS):02d}"  # id determinista: el notebook se regenera byte a byte igual
+    CELLS.append(cell)
 
 
 def code(text):
-    CELLS.append(nbf.v4.new_code_cell(text.strip("\n")))
+    cell = nbf.v4.new_code_cell(text.strip("\n"))
+    cell["id"] = f"celda-{len(CELLS):02d}"
+    CELLS.append(cell)
 
 
 # ============================================================================ 0. portada
@@ -374,6 +378,15 @@ fig = viz.plot_energy_profile(xi_esc, e_esc, relative=False, xlabel="ξ = d(Pγ�
                               subtitle="PM7 en el campo de la enzima; el máximo es una primera estimación del TS")
 fig;
 ''')
+
+md(r"""
+> **Un detalle que llama la atención.** El perfil arranca con un salto de ~4 kcal/mol entre el
+> reactivo (ξ = −1.56 Å, E = 0) y el primer punto del escaneo. La optimización inicial del
+> reactivo se detuvo en un *hombro* de la superficie; el verdadero mínimo apareció después, al
+> descender desde el estado de transición (sección 8). Es una lección práctica: un optimizador
+> "convergido" no garantiza el mínimo más bajo, y por eso los caminos de reacción se verifican
+> en las dos direcciones.
+""")
 
 code(r'''
 # Animación del escaneo: el fosfato viaja del ATP a la glucosa
