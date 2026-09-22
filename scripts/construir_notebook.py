@@ -365,11 +365,13 @@ print("ΔE(reacción) = %+.1f kcal/mol dentro de la enzima (entorno fijo, PM7)" 
 
 code(r'''
 escaneo = datos.csv("qmmm/escaneo.csv")
-fig = viz.plot_energy_profile(escaneo["xi"].values, escaneo["energia_rel_kcal"].values, relative=False,
-                              xlabel="ξ = d(Pγ–O3β) − d(Pγ–O6)  (Å)",
-                              ts_index=int(escaneo["energia_rel_kcal"].idxmax()),
+# el escaneo se muestra a partir del reactivo relajado (ξ = %.2f Å, E = 0)
+xi_esc = np.r_[R["xi"], escaneo["xi"].values]
+e_esc = np.r_[0.0, escaneo["energia_rel_kcal"].values]
+fig = viz.plot_energy_profile(xi_esc, e_esc, relative=False, xlabel="ξ = d(Pγ–O3β) − d(Pγ–O6)  (Å)",
+                              ts_index=int(np.argmax(e_esc)),
                               title="Escaneo relajado de la transferencia de fosforilo",
-                              subtitle="PM7 en el campo de la enzima, energías relativas al reactivo relajado; el máximo es una primera estimación del TS")
+                              subtitle="PM7 en el campo de la enzima; el máximo es una primera estimación del TS")
 fig;
 ''')
 
@@ -400,8 +402,8 @@ reacción y un mínimo en todas las demás direcciones (como el paso entre dos m
 
 code(r'''
 neb = datos.csv("qmmm/neb.csv")
-perfiles = [(escaneo["xi"].values, escaneo["energia_rel_kcal"].values, "escaneo restringido"),
-            (neb["xi"].values, neb["energia_rel_kcal"].values, "NEB (imagen trepadora)")]
+perfiles = [(xi_esc, e_esc, "escaneo restringido"),
+            (np.r_[R["xi"], neb["xi"].values[1:]], np.r_[0.0, neb["energia_rel_kcal"].values[1:]], "NEB (imagen trepadora)")]
 fig = viz.plot_energy_profiles(perfiles, xlabel="ξ (Å)", relative=False, title="Del escaneo al camino de mínima energía",
                                subtitle="El NEB relaja todas las coordenadas a la vez; la imagen trepadora sube a la cima")
 fig;
