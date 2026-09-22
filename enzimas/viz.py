@@ -547,9 +547,10 @@ def plot_md_summary(
                     xytext=(4, -2), textcoords="offset points", ha="left", va="top", color=INK_SECONDARY, fontsize=9)
         if crystal_value is not None:
             ax.axvline(float(crystal_value), color=INK, linewidth=1.2, zorder=3)
-            ax.annotate(f"{crystal_label} {float(crystal_value):.2f} Å", xy=(float(crystal_value), 1.0),
-                        xycoords=("data", "axes fraction"), xytext=(-4, -2), textcoords="offset points",
-                        ha="right", va="top", color=INK, fontsize=9)
+            # la línea suele quedar en el borde izquierdo: la etiqueta va a su derecha, un poco más abajo que la media
+            ax.annotate(f"{crystal_label} {float(crystal_value):.2f} Å", xy=(float(crystal_value), 0.88),
+                        xycoords=("data", "axes fraction"), xytext=(4, 0), textcoords="offset points",
+                        ha="left", va="top", color=INK, fontsize=9)
     _finish(ax, "d(PG–O6) (Å)", "Frecuencia")
     ax.set_title("Distribución de d(PG–O6)", loc="left", fontsize=11, color=INK_SECONDARY, fontweight="normal", pad=8)
     _fig_title(fig, title, subtitle)

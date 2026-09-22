@@ -428,11 +428,11 @@ class ModeloGlucoquinasa:
         return dict(coords=d_atoms.get_positions().copy(), energy_kcal=e, converged=bool(converged),
                     curvature=float(d_atoms.get_curvature()), eigenmode=np.asarray(d_atoms.get_eigenmode()), **rc)
 
-    def vibrations(self, xyz, tag="vib", indices=None, delta=0.01, nfree=2):
+    def vibrations(self, xyz, tag="vib", indices=None, delta=0.01, nfree=2, embedding=True, eps=None):
         """Frecuencias numéricas (ASE) sobre los átomos libres.  Devuelve frecuencias con signo (cm-1) y modos."""
         from ase.vibrations import Vibrations
 
-        atoms = self.ase_atoms(xyz, tag=f"{tag}/calc")
+        atoms = self.ase_atoms(xyz, tag=f"{tag}/calc", embedding=embedding, eps=eps)
         indices = self.free if indices is None else list(indices)
         work = self.work / tag
         work.mkdir(parents=True, exist_ok=True)
@@ -448,14 +448,15 @@ class ModeloGlucoquinasa:
         _log(f"{tag}: frecuencias más bajas {np.round(signed[order][:4], 1)} cm-1; modos imaginarios: {validation['imaginary_mode_count']}")
         return dict(freq_cm_signed=signed, modes=np.asarray(modes), validation=validation, indices=indices)
 
-    def descend(self, xyz_ts, mode, tag, direction=+1, displacement_a=0.15, fmax_kcal_a=0.5, steps=400, every=5):
+    def descend(self, xyz_ts, mode, tag, direction=+1, displacement_a=0.15, fmax_kcal_a=0.5, steps=400, every=5,
+                embedding=True, eps=None):
         """Desciende desde el TS a lo largo del modo imaginario (camino de mínima energía descendente)."""
         from ase.optimize import FIRE
 
         mode = np.asarray(mode, dtype=float)
         mode = mode / np.linalg.norm(mode)
         xyz0 = np.asarray(xyz_ts, dtype=float) + direction * displacement_a * mode
-        atoms = self.ase_atoms(xyz0, tag=f"{tag}/calc")
+        atoms = self.ase_atoms(xyz0, tag=f"{tag}/calc", embedding=embedding, eps=eps)
         frames, energies = [], []
 
         def record():

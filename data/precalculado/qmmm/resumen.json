@@ -796,18 +796,115 @@
   },
   "agua": {
    "eps": 78.4,
-   "metodo": "PM7/COSMO, anclajes fijos, sin el campo de la enzima",
-   "E_reactivo": -1520.03952,
-   "E_producto": -1517.64464,
-   "dE_reaccion": 2.3948800000000574,
-   "E_saddle_qst2": -1481.28123,
-   "barrera_saddle_qst2_kcal": 38.75828999999999,
-   "segundos": 460.49907898902893
+   "metodo": "PM7/COSMO (agua implícita), anclajes fijos, sin el campo de la enzima",
+   "E_reactivo": -1512.49318,
+   "E_producto": -1520.43051,
+   "dE_reaccion": -7.9373299999999745,
+   "E_saddle_qst2": -1489.10555,
+   "barrera_saddle_qst2_kcal": 22.903099999999995,
+   "saddle_d_PG_O6": 2.295858900281116,
+   "saddle_d_PG_O3B": 2.196542455769975,
+   "saddle_d_O6_H": 1.0359026884799563,
+   "saddle_d_OD1_H": 1.6582020775526696,
+   "saddle_d_Mg_O6": 3.2898798108745564,
+   "saddle_xi": -0.09931644451114074,
+   "dimero_convergido": true,
+   "E_ts_nativo": -1490.87556,
+   "E_ts": -1490.87556,
+   "barrera_kcal": 21.617619999999988,
+   "metodo_ts": "dímero (ASE) + TS de MOPAC",
+   "ts_d_PG_O6": 2.0522494268484976,
+   "ts_d_PG_O3B": 2.0347307659737206,
+   "ts_d_O6_H": 1.0466828602781275,
+   "ts_d_OD1_H": 1.6857670360995924,
+   "ts_d_Mg_O6": 3.211781787419564,
+   "ts_xi": -0.017518660874777048,
+   "validacion_ts": {
+    "ok": false,
+    "imaginary_mode_count": 5,
+    "imaginary_modes": [
+     {
+      "mode_index": 0,
+      "imag_cm1": 193.88,
+      "source": "negative"
+     },
+     {
+      "mode_index": 1,
+      "imag_cm1": 165.1,
+      "source": "negative"
+     },
+     {
+      "mode_index": 2,
+      "imag_cm1": 36.95,
+      "source": "negative"
+     },
+     {
+      "mode_index": 3,
+      "imag_cm1": 32.57,
+      "source": "negative"
+     },
+     {
+      "mode_index": 4,
+      "imag_cm1": 26.15,
+      "source": "negative"
+     }
+    ],
+    "primary_mode_index": 0,
+    "primary_imag_cm1": 193.88,
+    "threshold_cm": 10.0
+   },
+   "frecuencias_mas_bajas": [
+    -193.88,
+    -165.1,
+    -36.95,
+    -32.57,
+    -26.15,
+    7.07
+   ],
+   "segundos": 887.7548270225525,
+   "irc_cuadros": 0,
+   "frecuencias_ase_mas_bajas": [
+    -163.40432159547626,
+    -37.28132322303925,
+    -9.714819561613465,
+    5.363433897651681,
+    9.843929894747415,
+    16.733593820924145
+   ],
+   "validacion_ts_ase": {
+    "ok": false,
+    "imaginary_mode_count": 2,
+    "imaginary_modes": [
+     {
+      "mode_index": 0,
+      "imag_cm1": 163.40432159547626,
+      "source": "negative"
+     },
+     {
+      "mode_index": 1,
+      "imag_cm1": 37.28132322303925,
+      "source": "negative"
+     }
+    ],
+    "primary_mode_index": 0,
+    "primary_imag_cm1": 163.40432159547626,
+    "threshold_cm": 10.0
+   },
+   "descenso": {
+    "E_extremo_reactivo": -1512.49318,
+    "E_extremo_producto": -1520.43051,
+    "xi_extremos": [
+     -1.7262373044917376,
+     2.4393646871978696
+    ]
+   },
+   "E_reactivo_original": -1512.00865,
+   "irc_nota": "IRC=1* de MOPAC abortó (fallo interno de MOPAC 23.2.3 con COSMO) tras 47 puntos sin avanzar en xi; el camino se obtuvo por descenso desde el TS (ASE).",
+   "E_producto_optimizacion_directa": -1517.64464,
+   "nota_referencias": "Reactivo y producto en agua tomados de los mínimos alcanzados por el descenso desde el TS (más bajos que las optimizaciones directas)."
   }
  },
- "errores": {
-  "agua": "Traceback (most recent call last):\n  File \"/Users/juvenalyosa/enzimas/scripts/03_qmmm_reaccion.py\", line 255, in main\n    Ta = m.native_ts(ts_xyz, \"agua/ts\", eps=EPS)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/juvenalyosa/enzimas/enzimas/glucoquinasa.py\", line 490, in native_ts\n    r = self.run(xyz_guess, tag, \"TS GNORM=0.5 CYCLES=2000 LET RECALC=5\", embedding=embedding, eps=eps)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/juvenalyosa/enzimas/enzimas/glucoquinasa.py\", line 284, in run\n    raise RuntimeError(f\"MOPAC falló en {tag}:\\n{out[-2500:]}\\n{cp.stderr[-500:]}\")\nRuntimeError: MOPAC falló en agua/ts:\nf 210 steps completed\n  185 of 210 steps completed\n  186 of 210 steps completed\n  187 of 210 steps completed\n  188 of 210 steps completed\n    Hessian 90% complete.  Estimated remaining time required:   0.00 hours\n  189 of 210 steps completed\n  190 of 210 steps completed\n  191 of 210 steps completed\n  192 of 210 steps completed\n  193 of 210 steps completed\n  194 of 210 steps completed\n  195 of 210 steps completed\n  196 of 210 steps completed\n  197 of 210 steps completed\n  198 of 210 steps completed\n  199 of 210 steps completed\n    Hessian 95% complete.  Estimated remaining time required:   0.00 hours\n  200 of 210 steps completed\n  201 of 210 steps completed\n  202 of 210 steps completed\n  203 of 210 steps completed\n  204 of 210 steps completed\n  205 of 210 steps completed\n  206 of 210 steps completed\n  207 of 210 steps completed\n  208 of 210 steps completed\n  209 of 210 steps completed\n    Hessian100% complete.  Estimated remaining time required:   0.00 hours\n  210 of 210 steps completed\n CYCLE:    30 TIME:  12.578 TIME LEFT:  2.00D  GRAD.:     3.120 HEAT: -1479.268\n CYCLE:    30 TIME:   0.062 TIME LEFT:  2.00D  GRAD.:     3.121 HEAT: -1479.267\n NUMERICAL PROBLEMS IN BRACKETING LAMBDA  -77793450.526090398       -77793450526.090393       -77793450.526168197        55053371562.526093        77712450.265156269     \n  GOING FOR FIXED STEP SIZE....\n CYCLE:    31 TIME:   0.078 TIME LEFT:  2.00D  GRAD.:     3.109 HEAT: -1479.262\n NUMERICAL PROBLEMS IN BRACKETING LAMBDA  -76880053573.373123       -76880053573373.125       -76880053573.449997        56375311369541.375        76880053488.987793     \n  GOING FOR FIXED STEP SIZE....\n CYCLE:    32 TIME:   0.070 TIME LEFT:  2.00D  GRAD.:     3.118 HEAT: -1479.281\n CALCULATION IS TERMINATED TO AVOID ZERO DIVIDE\n\n          in FORMD\n\n ******************************************************************************\n *                                                                            *\n *     Error and normal termination messages reported in this calculation     *\n *                                                                            *\n * in FORMD                                                                   *\n * JOB ENDED NORMALLY                                                         *\n *                                                                            *\n ******************************************************************************\n\n\n\n TOTAL JOB TIME:            92.84 SECONDS\n\n == MOPAC DONE ==\n\n          Tue Sep 22 20:43:53 2026  Job: 'job' started successfully\n\n"
- },
+ "errores": {},
  "tiempo_total_s": 1721.9482798576355,
  "llamadas_mopac": 3098,
  "modo_rapido": false

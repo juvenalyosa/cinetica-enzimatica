@@ -57,19 +57,22 @@ def main():
         agua.update({f"saddle_{k}": v for k, v in m.reaction_coordinates(Sa["coords"]).items()})
         m.write_pdb(OUT / "agua_saddle_qst2.pdb", Sa["coords"])
         ts_xyz, ts_e, metodo_ts = None, None, None
-        for guess_name, guess in (("saddle", Sa["coords"]), ("qmmm_ts", TS)):
-            try:
-                Ta = m.run(guess, f"agua/ts_desde_{guess_name}", "TS GNORM=1.0 CYCLES=2000 LET RECALC=1 DDMIN=0.0", embedding=False, eps=EPS)
-                ts_xyz, ts_e, metodo_ts = Ta["coords"], Ta["energy_kcal"], f"MOPAC TS desde {guess_name}"
-                log(f"TS nativo desde {guess_name}: E = {ts_e:.2f}")
-                break
-            except Exception as exc:
-                log(f"TS nativo desde {guess_name} falló: {str(exc)[:120]}")
-        if ts_xyz is None:
-            tangent = Pa["coords"] - Ra["coords"]
-            tangent[sorted(m.fixed)] = 0.0
-            D = m.dimer(Sa["coords"], tag="agua/dimero", fmax_kcal_a=0.5, steps=400, mode_guess=tangent, embedding=False, eps=EPS)
-            ts_xyz, ts_e, metodo_ts = D["coords"], D["energy_kcal"], "método del dímero (ASE) desde SADDLE"
+        # Refinamiento del TS: método del dímero (ASE, solo gradientes) desde la geometría SADDLE;
+        # el TS nativo de MOPAC (seguimiento de modo con Hessiano) se intenta después, acotado.
+        tangent = Pa["coords"] - Ra["coords"]
+        tangent[sorted(m.fixed)] = 0.0
+        D = m.dimer(Sa["coords"], tag="agua/dimero", fmax_kcal_a=0.5, steps=400, mode_guess=tangent, embedding=False, eps=EPS)
+        ts_xyz, ts_e, metodo_ts = D["coords"], D["energy_kcal"], "método del dímero (ASE) desde SADDLE"
+        agua["dimero_convergido"] = D["converged"]
+        try:
+            Ta = m.run(ts_xyz, "agua/ts_nativo", "TS GNORM=1.0 CYCLES=150 LET RECALC=10 DDMIN=0.0", embedding=False, eps=EPS)
+            agua["E_ts_nativo"] = Ta["energy_kcal"]
+            if abs(Ta["energy_kcal"] - ts_e) < 3.0:  # mismo punto de silla: se adopta el refinamiento nativo
+                ts_xyz, ts_e, metodo_ts = Ta["coords"], Ta["energy_kcal"], "dímero (ASE) + TS de MOPAC"
+            log(f"TS nativo: E = {Ta['energy_kcal']:.2f} (dímero {ts_e:.2f})")
+        except Exception as exc:
+            agua["ts_nativo_error"] = str(exc)[:200]
+            log(f"TS nativo falló (se conserva el dímero): {str(exc)[:100]}")
         agua.update(E_ts=ts_e, barrera_kcal=ts_e - Ra["energy_kcal"], metodo_ts=metodo_ts)
         agua.update({f"ts_{k}": v for k, v in m.reaction_coordinates(ts_xyz).items()})
         m.write_pdb(OUT / "agua_ts.pdb", ts_xyz)

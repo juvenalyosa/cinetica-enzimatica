@@ -365,11 +365,11 @@ print("ΔE(reacción) = %+.1f kcal/mol dentro de la enzima (entorno fijo, PM7)" 
 
 code(r'''
 escaneo = datos.csv("qmmm/escaneo.csv")
-fig = viz.plot_energy_profile(escaneo["xi"].values, escaneo["energia_kcal"].values,
+fig = viz.plot_energy_profile(escaneo["xi"].values, escaneo["energia_rel_kcal"].values, relative=False,
                               xlabel="ξ = d(Pγ–O3β) − d(Pγ–O6)  (Å)",
                               ts_index=int(escaneo["energia_rel_kcal"].idxmax()),
                               title="Escaneo relajado de la transferencia de fosforilo",
-                              subtitle="PM7 en el campo de la enzima; el máximo es una primera estimación del TS")
+                              subtitle="PM7 en el campo de la enzima, energías relativas al reactivo relajado; el máximo es una primera estimación del TS")
 fig;
 ''')
 
@@ -400,9 +400,9 @@ reacción y un mínimo en todas las demás direcciones (como el paso entre dos m
 
 code(r'''
 neb = datos.csv("qmmm/neb.csv")
-perfiles = [(escaneo["xi"].values, escaneo["energia_kcal"].values, "escaneo restringido"),
-            (neb["xi"].values, neb["energia_kcal"].values, "NEB (imagen trepadora)")]
-fig = viz.plot_energy_profiles(perfiles, xlabel="ξ (Å)", title="Del escaneo al camino de mínima energía",
+perfiles = [(escaneo["xi"].values, escaneo["energia_rel_kcal"].values, "escaneo restringido"),
+            (neb["xi"].values, neb["energia_rel_kcal"].values, "NEB (imagen trepadora)")]
+fig = viz.plot_energy_profiles(perfiles, xlabel="ξ (Å)", relative=False, title="Del escaneo al camino de mínima energía",
                                subtitle="El NEB relaja todas las coordenadas a la vez; la imagen trepadora sube a la cima")
 fig;
 ''')
@@ -442,7 +442,7 @@ viaja hacia Asp205.
 code(r'''
 vibra = np.load(datos.ruta("qmmm/frecuencias_ts.npz"))
 cuadros_modo = viz.mode_animation_frames(vibra["ts_xyz"], vibra["modo_imaginario"], n_frames=24, amplitude=0.6)
-viz.view_frames(cuadros_modo, list(vibra["simbolos"]), interval_ms=60, bonds_from=leer("qmmm/ts.pdb"))
+viz.view_frames(cuadros_modo, list(vibra["simbolos"]), interval_ms=60, bonds_from=0)
 ''')
 
 md(r"""
@@ -454,7 +454,7 @@ reactivos con **estos** productos (es la idea del IRC, *intrinsic reaction coord
 
 code(r'''
 camino = datos.csv("qmmm/camino_descenso.csv")
-fig = viz.plot_energy_profile(camino["xi"].values, camino["energia_kcal"].values, xlabel="ξ (Å)",
+fig = viz.plot_energy_profile(camino["xi"].values, camino["energia_rel_kcal"].values, relative=False, xlabel="ξ (Å)",
                               ts_index=int(camino["energia_rel_kcal"].idxmax()), smooth=False,
                               title="Camino de mínima energía descendente desde el TS",
                               subtitle="Cada punto es una geometría relajada; el TS está en el centro")
@@ -489,27 +489,49 @@ MOPAC, con los nombres con que los orquesta la suite Leonardo:
 | Validación | `FORCETS` | Frecuencias sobre las coordenadas libres: debe haber una imaginaria |
 | Camino | `IRC=1*` | Sigue el camino intrínseco de reacción en ambas direcciones |
 
-Un detalle práctico que conviene aprender: `SADDLE` da una *estimación* del TS que a veces
-queda lejos; el refinamiento `TS` funciona mejor si parte de una buena geometría (aquí, la
-del punto de silla QM/MM de la sección 8).
+Un detalle práctico que conviene aprender: `SADDLE` da una *estimación* del TS que hay que
+refinar. Aquí el refinamiento se hizo con el método del dímero y después con la palabra clave
+`TS` de MOPAC, que llegaron al mismo punto de silla.
 """)
 
 code(r'''
 agua = res["etapas"]["agua"]
-if "barrera_saddle_qst2_kcal" in agua:
-    print("SADDLE (QST2): estimación del TS %.1f kcal/mol por encima del reactivo" % agua["barrera_saddle_qst2_kcal"])
-print("TS refinado (palabra clave TS): barrera = %.1f kcal/mol; ΔE(reacción) = %+.1f kcal/mol" % (agua["barrera_kcal"], agua["dE_reaccion"]))
-print("Frecuencias más bajas (cm⁻¹):", np.round(agua["frecuencias_mas_bajas"], 1))
-print("Validación FORCETS:", "una sola frecuencia imaginaria ✔" if agua["validacion_ts"]["ok"]
-      else f"{agua['validacion_ts']['imaginary_mode_count']} modos imaginarios: el punto de silla necesita más refinamiento")
+print("1) SADDLE (QST2): estimación del TS %.1f kcal/mol por encima del reactivo (ξ = %+.2f Å)" % (agua["barrera_saddle_qst2_kcal"], agua["saddle_xi"]))
+print("2) Refinamiento (%s): barrera = %.1f kcal/mol; ΔE(reacción) = %+.1f kcal/mol" % (agua["metodo_ts"], agua["barrera_kcal"], agua["dE_reaccion"]))
+print("   geometría del TS en agua: d(Pγ–O6) = %.2f Å, d(Pγ–O3β) = %.2f Å, d(O6–H) = %.2f Å" % (agua["ts_d_PG_O6"], agua["ts_d_PG_O3B"], agua["ts_d_O6_H"]))
+print("3) FORCETS de MOPAC, frecuencias más bajas (cm⁻¹):", np.round(agua["frecuencias_mas_bajas"], 1))
+if "frecuencias_ase_mas_bajas" in agua:
+    print("   Hessiano numérico (ASE), frecuencias más bajas (cm⁻¹):", np.round(agua["frecuencias_ase_mas_bajas"], 1),
+          "→ modos imaginarios:", agua["validacion_ts_ase"]["imaginary_mode_count"])
+''')
+
+md(r"""
+**Una lección sobre validar.** El Hessiano de `FORCETS` sobre la superficie COSMO muestra
+varias frecuencias "imaginarias" pequeñas (|ν| < 40 cm⁻¹): son ruido numérico de la cavidad
+del disolvente, no movimientos reales, y por eso siempre conviene mirar la *magnitud* de las
+frecuencias y no solo contarlas. Recalcular el Hessiano por diferencias finitas más finas
+(ASE) deja un solo modo claro (≈ −160 cm⁻¹, el fósforo que salta) y un residuo de −37 cm⁻¹
+atribuible a la cavidad. El `IRC` de MOPAC, que debería seguir ese modo hacia abajo, abortó
+por un fallo interno del programa en esta superficie con disolvente (también eso pasa en la
+práctica); el camino se obtuvo entonces con el mismo descenso desde el TS de la sección 8.
+""")
+
+code(r'''
+perfiles = []
 try:
     irc = datos.csv("qmmm/agua_irc.csv")
-    fig = viz.plot_energy_profile(irc["xi"].values, irc["energia_kcal"].values, xlabel="ξ (Å)", smooth=False,
-                                  ts_index=int(irc["energia_rel_kcal"].idxmax()), title="IRC de MOPAC en agua (COSMO)",
-                                  subtitle="Camino intrínseco de reacción desde el TS localizado con TS + FORCETS")
-    fig;
+    perfiles.append((irc["xi"].values, irc["energia_kcal"].values - agua["E_reactivo"], "IRC de MOPAC"))
 except FileNotFoundError:
-    print("(el IRC no está disponible en estos datos)")
+    pass
+try:
+    cam = datos.csv("qmmm/agua_camino_descenso.csv")
+    perfiles.append((cam["xi"].values, cam["energia_kcal"].values - agua["E_reactivo"], "descenso desde el TS"))
+except FileNotFoundError:
+    pass
+if perfiles:
+    fig = viz.plot_energy_profiles(perfiles, xlabel="ξ (Å)", smooth=False, relative=False, title="Camino de reacción del sitio activo en agua (COSMO)",
+                                   subtitle="Energías relativas al reactivo en agua; el máximo es el TS refinado")
+    fig;
 ''')
 
 code(r'''
@@ -521,6 +543,17 @@ fig = viz.plot_energy_levels(con, compare=sin, ts_indices=[1], label="dentro de 
 fig;
 print("Efecto del entorno proteico sobre la barrera: %+.1f kcal/mol" % (ts["barrera_kcal"] - agua["barrera_kcal"]))
 ''')
+
+md(r"""
+**Cómo leer esta comparación.** El clúster "en agua" **no** es la reacción sin catalizar:
+todavía contiene la base catalítica (Asp205), la carga positiva de Lys169 y el Mg²⁺, es decir,
+la maquinaria química esencial. Por eso las dos colinas se parecen: la diferencia (unas pocas
+kcal/mol) mide lo que aporta el *resto* de la proteína, sobre todo su campo eléctrico y el
+hecho de mantener los reactivos alineados. La reacción de verdad sin enzima, glucosa y ATP
+solos en agua, es extraordinariamente lenta: las transferencias de fosforilo no catalizadas
+tienen tiempos de vida de años a millones de años (Wolfenden y colaboradores), porque ninguna
+base, ningún catión ni ningún campo eléctrico están ahí para ayudar.
+""")
 
 # ============================================================================ 10. barrera -> kcat
 md(r"""
@@ -788,6 +821,7 @@ md(r"""
 * Kamata, K. *et al.* (2004) *Structure* 12, 429–438 (formas abierta y cerrada; cooperatividad).
 * Matschinsky, F. M. (2009) *Nat. Rev. Drug Discov.* 8, 399–416 (glucoquinasa como sensor y diana).
 * Cornish‑Bowden, A. *Fundamentals of Enzyme Kinetics*, 4ª ed. (2012).
+* Lad, C., Williams, N. H. & Wolfenden, R. (2003) *Proc. Natl. Acad. Sci. USA* 100, 5607–5610 (lentitud de las transferencias de fosforilo no catalizadas).
 * Senn, H. M. & Thiel, W. (2009) *Angew. Chem. Int. Ed.* 48, 1198–1229 (métodos QM/MM).
 * Stewart, J. J. P. (2013) *J. Mol. Model.* 19, 1–32 (PM7). Larsen, A. H. *et al.* (2017) *J. Phys.: Condens. Matter* 29, 273002 (ASE).
 
