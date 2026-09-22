@@ -1,0 +1,789 @@
+#!/usr/bin/env python
+"""Genera notebooks/Cinetica_Enzimatica_Glucoquinasa.ipynb a partir de las celdas definidas aquí.
+
+Mantener el notebook como código facilita revisarlo, versionarlo y regenerarlo.
+    python scripts/construir_notebook.py
+"""
+from __future__ import annotations
+
+from pathlib import Path
+
+import nbformat as nbf
+
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / "notebooks" / "Cinetica_Enzimatica_Glucoquinasa.ipynb"
+
+CELLS = []
+
+
+def md(text):
+    CELLS.append(nbf.v4.new_markdown_cell(text.strip("\n")))
+
+
+def code(text):
+    CELLS.append(nbf.v4.new_code_cell(text.strip("\n")))
+
+
+# ============================================================================ 0. portada
+md(r"""
+# Cinética enzimática, paso a paso, con simulaciones QM/MM
+
+**Enzima de estudio: la glucoquinasa humana** (hexoquinasa IV, EC 2.7.1.2)
+
+> glucosa + ATP  ⟶  glucosa‑6‑fosfato + ADP
+
+Este cuaderno explica la cinética enzimática **desde cero**. Cada sección empieza con una
+idea muy simple, y solo después añade ecuaciones y simulaciones. Todo lo que ves aquí se
+calcula con código que puedes leer y modificar.
+
+**Qué vas a hacer, celda a celda**
+
+| # | Sección | Herramienta |
+|---|---|---|
+| 1 | ¿Qué es una enzima y por qué la glucoquinasa? | lectura |
+| 2 | La estructura 3D del complejo catalítico | PDB 3FGU, visor 3D |
+| 3 | Preparar la enzima para simularla | PDBFixer, AmberTools |
+| 4 | La enzima se mueve: dinámica molecular | OpenMM |
+| 5 | Barreras de energía y velocidad de reacción | teoría del estado de transición |
+| 6 | Mirar la reacción con mecánica cuántica: QM/MM | MOPAC PM7 + Amber |
+| 7 | Reactivo, producto y el perfil de energía | escaneo relajado |
+| 8 | El estado de transición | NEB, método del dímero, frecuencias |
+| 9 | La misma reacción **sin** enzima | MOPAC: SADDLE (QST2), TS, FORCETS, IRC |
+| 10 | De la barrera a *k*<sub>cat</sub> | ecuación de Eyring |
+| 11 | Michaelis–Menten desde el mecanismo | ecuaciones diferenciales, ajustes |
+| 12 | Cooperatividad: la glucoquinasa es un sensor | ecuación de Hill |
+| 13 | Inhibidores y activadores | familias de curvas, Lineweaver–Burk |
+| 14 | Temperatura y pH | Arrhenius, Eyring, perfil de pH |
+| 15 | Resumen y ejercicios | |
+
+**Dos modos de ejecución.** En modo `rapido` (por defecto) el cuaderno lee resultados ya
+calculados y dibuja todo en unos minutos. En modo `completo` reejecuta las simulaciones
+(horas en la CPU de Colab). Cambia `MODO` en la celda siguiente si quieres recalcular.
+""")
+
+code(r'''
+# --- Preparación del entorno (ejecuta esta celda primero) -------------------------------
+import os, sys, subprocess, pathlib
+
+MODO = "rapido"          # "rapido": usa resultados precalculados | "completo": recalcula todo
+
+if not pathlib.Path("enzimas").exists():
+    if pathlib.Path("../enzimas").exists():            # ejecutado desde notebooks/
+        os.chdir("..")
+    else:                                              # Google Colab: clonar el repositorio
+        subprocess.run(["git", "clone", "-q", "https://github.com/juvenalyosa/cinetica-enzimatica.git"], check=True)
+        os.chdir("cinetica-enzimatica")
+sys.path.insert(0, os.getcwd())
+
+from enzimas import colab_setup
+entorno = colab_setup.instalar(MODO)
+''')
+
+code(r'''
+# --- Importaciones y estilo gráfico -----------------------------------------------------
+%matplotlib inline
+import json
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from enzimas import kinetics as cin, viz, datos
+viz.apply_style()
+
+def leer(nombre):
+    """Lee un archivo de texto de data/precalculado (descomprime .gz si hace falta)."""
+    return pathlib.Path(datos.ruta(nombre)).read_text()
+
+print("Listo. Modo:", MODO)
+''')
+
+# ============================================================================ 1. enzimas
+md(r"""
+## 1. ¿Qué es una enzima y por qué la glucoquinasa?
+
+**La idea más simple.** Una enzima es una proteína que hace que una reacción química ocurra
+**mucho más rápido**, sin gastarse en el proceso. La reacción ocurriría igual sin la enzima,
+pero tan lentamente que la vida no podría esperar.
+
+**Un poco más.** La enzima tiene un hueco, el **sitio activo**, donde encajan las moléculas
+que van a reaccionar (los **sustratos**). Dentro del sitio activo la enzima sujeta los
+sustratos en la posición correcta, los rodea de cargas eléctricas y estabiliza el momento
+más difícil de la reacción. Ese momento se llama **estado de transición**, y casi todo este
+cuaderno gira en torno a él.
+
+**Nuestra enzima.** La **glucoquinasa** toma una glucosa y le pega un grupo fosfato que
+viene del ATP. El producto, glucosa‑6‑fosfato, ya no puede salir de la célula: es el primer
+paso para "atrapar" y usar la glucosa. La glucoquinasa vive en el hígado y en las células β
+del páncreas, donde funciona como **sensor de glucosa**: decide cuánta insulina se libera.
+Mutaciones en su gen causan un tipo de diabetes hereditaria (MODY2).
+
+Tres cosas la hacen ideal para aprender cinética:
+
+1. La reacción es una **transferencia de fosforilo** clásica, con Mg²⁺ y una base catalítica (Asp205).
+2. Su curva de velocidad **no** es la hipérbola de Michaelis–Menten sino una **sigmoide** (sección 12).
+3. Tiene inhibidores y activadores farmacológicos bien estudiados (sección 13).
+
+Valores de referencia que usaremos (órdenes de magnitud típicos, a 25–30 °C):
+""")
+
+code(r'''
+ref = cin.glucokinase_reference()
+tabla = pd.DataFrame(
+    [(k, v["value"], v["unit"]) for k, v in ref.items() if isinstance(v, dict) and "value" in v],
+    columns=["parámetro", "valor (aprox.)", "unidad"],
+)
+display(tabla)
+print(ref["notes"])
+''')
+
+# ============================================================================ 2. estructura
+md(r"""
+## 2. La estructura 3D del complejo catalítico
+
+**Simple.** Para simular una enzima necesitamos saber dónde está cada átomo. Eso lo dan los
+cristalógrafos: la estructura **3FGU** del Protein Data Bank muestra la glucoquinasa humana
+con **glucosa**, un análogo de ATP (AMP‑PNP, que no puede reaccionar y por eso se deja
+fotografiar) y el ion **Mg²⁺**, todo dentro del sitio activo. Es una foto del instante
+anterior a la reacción.
+
+**Más detalle.** La glucoquinasa tiene dos dominios (grande y pequeño) que se cierran sobre
+la glucosa como una almeja. En la forma cerrada, el fósforo terminal del ATP (Pγ) queda a
+solo ~2.7 Å del oxígeno O6 de la glucosa, que es el que recibirá el fosfato. Al lado, el
+carboxilato de **Asp205** está a 2.5 Å del hidroxilo O6‑H: es la **base catalítica** que
+le quitará el protón. **Lys169** y el Mg²⁺ neutralizan las cargas negativas del fosfato.
+""")
+
+code(r'''
+pdb_cristal = pathlib.Path("data/raw/3FGU.pdb").read_text()
+# residuos a resaltar: en el cristal la numeración es la biológica
+vista = viz.view_complex(pdb_cristal, ligand_resnames=("BGC", "ANP"), ion_resnames=("MG", "K"),
+                         highlight_residues=(("ASP", 205), ("LYS", 169), ("THR", 228), ("SER", 151)),
+                         label_map={205: "Asp205", 169: "Lys169", 228: "Thr228", 151: "Ser151"})
+vista
+''')
+
+code(r'''
+# Distancias clave en el cristal (Å): ¿está todo listo para reaccionar?
+def coords_pdb(texto, resn, name):
+    for l in texto.splitlines():
+        if l.startswith(("ATOM", "HETATM")) and l[17:20].strip() == resn and l[12:16].strip() == name and l[16] in " A":
+            return np.array([float(l[30:38]), float(l[38:46]), float(l[46:54])])
+
+PG, O6 = coords_pdb(pdb_cristal, "ANP", "PG"), coords_pdb(pdb_cristal, "BGC", "O6")
+OD1 = [l for l in pdb_cristal.splitlines() if l.startswith("ATOM") and l[17:20] == "ASP" and int(l[22:26]) == 205 and l[12:16].strip() == "OD1"][0]
+OD1 = np.array([float(OD1[30:38]), float(OD1[38:46]), float(OD1[46:54])])
+print(f"Pγ ··· O6 (glucosa)      = {np.linalg.norm(PG - O6):.2f} Å   (un enlace P–O mide 1.6 Å)")
+print(f"O6 ··· OD1 (Asp205)      = {np.linalg.norm(O6 - OD1):.2f} Å   (enlace de hidrógeno corto: Asp205 es la base)")
+''')
+
+md(r"""
+> **Para pensar.** El cristal usa AMP‑PNP, en el que el oxígeno entre los fósforos β y γ se
+> cambió por un nitrógeno (N3B). Ese cambio impide la reacción y permite capturar el complejo.
+> Para simular la reacción real, nosotros volveremos a poner el oxígeno: ATP verdadero.
+""")
+
+# ============================================================================ 3. preparación
+md(r"""
+## 3. Preparar la enzima para simularla
+
+**Simple.** Una foto cristalográfica no es un sistema listo para simular: le faltan los
+hidrógenos (los rayos X no los ven), le faltan trozos de cadena que estaban desordenados,
+y no hay agua alrededor. Hay que completarla y meterla en una caja de agua con iones.
+
+**Más detalle.** El script `scripts/01_preparar_sistema.py` hizo esto:
+
+1. Cadena A de 3FGU, residuos 5–458; tres bucles internos faltantes modelados con PDBFixer.
+2. AMP‑PNP → ATP (N3B → O3B). Glucosa y ATP parametrizados con GAFF2 y cargas AM1‑BCC.
+3. Proteína con el campo de fuerza Amber ff14SB; Mg²⁺ y K⁺ con parámetros de Li–Merz.
+4. Aguas cristalográficas conservadas; caja de agua TIP3P de 10 Å y 21 Na⁺ para neutralizar.
+
+En modo `completo` esa preparación requiere AmberTools (antechamber, tleap), que no está en
+Colab; por eso los archivos preparados viajan con el repositorio.
+""")
+
+code(r'''
+prep = datos.json_("sistema/preparacion.json")
+print("Fuente:", prep["fuente"])
+print("Bucles modelados:", prep["bucles_modelados"])
+print("Campo de fuerza:", prep["campo_de_fuerza"])
+solv = prep["sistema_solvatado"]
+print(f"\nSistema solvatado: {solv['n_atoms']:,} átomos, carga total {solv['total_charge']:+.3f} e")
+print("Cargas de los ligandos:", {k: round(v, 2) for k, v in solv["ligand_charges"].items()})
+print("Residuos:", {k: v for k, v in solv["residue_counts"].items() if k in ("WAT", "Na+", "GLC", "ATP", "MG", "K+")})
+''')
+
+# ============================================================================ 4. MD
+md(r"""
+## 4. La enzima se mueve: dinámica molecular
+
+**Simple.** Las proteínas no están quietas: vibran, respiran, abren y cierran sus dominios.
+La **dinámica molecular (MD)** trata cada átomo como una bolita unida por resortes a sus
+vecinas, calcula las fuerzas y hace avanzar el reloj en pasos de 2 femtosegundos
+(0.000000000000002 s). Un nanosegundo de simulación son 500 000 pasos.
+
+**Más detalle.** Con OpenMM y el campo de fuerza Amber se hizo: minimización, calentamiento
+de 0 a 300 K, equilibración a 1 bar y 1 ns de producción. Aquí no hay química (los enlaces
+no se rompen): la MD sirve para ver **cuánto tiempo pasa el sitio activo en una geometría
+reactiva**, es decir, con el Pγ del ATP cerca del O6 de la glucosa. Estas geometrías se
+llaman **conformaciones de ataque cercano** (*near‑attack conformations*, NAC).
+""")
+
+code(r'''
+if MODO == "completo":
+    subprocess.run([sys.executable, "scripts/02_dinamica_molecular.py"], check=True)
+
+md_df = datos.csv("md/analisis.csv")
+md_info = datos.json_("md/md.json")
+print(f"Producción: {md_info['produccion_ns']} ns, {md_info['n_atomos']:,} átomos, plataforma {md_info['plataforma']}")
+fig = viz.plot_md_summary(md_df, crystal_value=2.68,
+                          subtitle="RMSD del esqueleto y distancias del sitio activo durante la producción")
+fig;
+''')
+
+code(r'''
+umbral = 3.5  # Å: definición práctica de conformación de ataque cercano
+fraccion = (md_df["d_PG_O6_A"] < umbral).mean()
+print(f"d(Pγ–O6) media = {md_df['d_PG_O6_A'].mean():.2f} Å; fracción de cuadros con d < {umbral} Å = {fraccion:.0%}")
+print("Idea clave: la enzima mantiene los reactivos 'apuntando' uno al otro la mayor parte del tiempo.")
+''')
+
+# ============================================================================ 5. barreras
+md(r"""
+## 5. Barreras de energía y velocidad de reacción
+
+**Simple.** Imagina una pelota en un valle que quiere pasar a otro valle más bajo. Aunque el
+segundo valle sea más profundo, la pelota tiene que subir primero una **colina**. Cuanto más
+alta la colina, más raro es que la pelota la cruce. En química la colina se llama **barrera
+de activación** y su cima es el **estado de transición** (TS).
+
+**Un poco más.** La velocidad con la que se cruza la barrera la da la **teoría del estado de
+transición** (Eyring, 1935):
+
+$$k = \kappa\,\frac{k_B T}{h}\,\exp\!\left(-\frac{\Delta G^{\ddagger}}{RT}\right)$$
+
+* $k_B T/h$ ≈ 6.2 × 10¹² s⁻¹ a 25 °C: la "frecuencia de intentos".
+* $\Delta G^{\ddagger}$: altura de la barrera (energía libre de activación).
+* Cada **1.36 kcal/mol** más de barrera hace la reacción **10 veces más lenta** a 25 °C.
+
+Una enzima acelera la reacción porque **baja la colina**: estabiliza el estado de transición
+más de lo que estabiliza a los reactivos.
+""")
+
+code(r'''
+barreras = np.linspace(5, 30, 200)
+k = cin.eyring_rate(barreras, temperature_k=298.15)
+fig, ax = viz.figure(7, 4)
+ax.semilogy(barreras, k, color=viz.COLORS["reactivo"], lw=2)
+for dg, texto in [(cin.barrier_from_rate(60.0), "k_cat de la glucoquinasa (~60 s⁻¹)"),
+                  (cin.barrier_from_rate(1e-8), "sin enzima (escala de años)")]:
+    ax.axvline(dg, color=viz.INK_MUTED, ls="--", lw=1)
+    ax.annotate(f"{texto}\nΔG‡ ≈ {dg:.1f} kcal/mol", (dg, cin.eyring_rate(dg)), xytext=(8, 10),
+                textcoords="offset points", fontsize=9, color=viz.INK_SECONDARY)
+ax.set_xlabel("ΔG‡ (kcal/mol)"); ax.set_ylabel("k (s⁻¹)")
+ax.set_title("Ecuación de Eyring: cada 1.36 kcal/mol, un factor 10", loc="left")
+fig;
+''')
+
+# ============================================================================ 6. QM/MM
+md(r"""
+## 6. Mirar la reacción con mecánica cuántica: QM/MM
+
+**Simple.** La dinámica molecular clásica no puede romper ni formar enlaces: sus "resortes"
+no saben de electrones. Para ver cómo el fosfato salta del ATP a la glucosa necesitamos
+**mecánica cuántica (QM)**. Pero la QM es carísima: no podemos aplicarla a 57 000 átomos.
+
+**La solución: QM/MM.** Tratamos con QM solo el pedacito donde ocurre la química (la
+**región QM**, unas decenas de átomos) y el resto de la enzima y el agua con el campo de
+fuerza clásico (**región MM**). Las dos regiones "se ven": las cargas de la región MM crean
+un potencial eléctrico que entra en el cálculo cuántico (**embedding electrostático**), y
+la región MM empuja a la QM con fuerzas de van der Waals (Lennard‑Jones).
+
+**Nuestra receta (la misma de la suite Leonardo, con MOPAC PM7):**
+
+* **Región QM** (78 átomos, carga −2): glucosa, el fragmento C5'–trifosfato del ATP, las
+  cadenas laterales de Asp205, Lys169 y Thr228, el Mg²⁺ y su agua coordinada.
+* Donde un enlace covalente cruza la frontera QM/MM se pone un **átomo de enlace** (un H).
+* El **entorno MM** (2300 cargas dentro de 16 Å) se mantiene **fijo**: es la aproximación de
+  entorno rígido, suficiente para entender el mecanismo.
+* Energía total: $E = E_{\mathrm{PM7}}[\text{QM en el potencial de la enzima}] + E_{\mathrm{LJ}}(\text{QM–MM})$.
+""")
+
+code(r'''
+particion = datos.json_("qmmm/particion.json")
+print(f"Región QM: {particion['n_qm']} átomos + {particion['n_link']} H de enlace; libres: {particion['n_free']}")
+print(f"Entorno MM: {particion['n_mm']} cargas puntuales; carga QM = {particion['qm_charge']}; carga MM = {particion['mm_charge']:.2f} e")
+conteo = pd.Series([a["resname"] for a in particion["qm_atoms"]]).value_counts()
+print("Átomos QM por residuo:", conteo.to_dict())
+vista = viz.view_qm_region(leer("qmmm/region_qm_inicial.pdb"), leer("qmmm/entorno_mm_8A.pdb"),
+                           link_atom_indices=particion["fixed"])
+vista
+''')
+
+md(r"""
+**¿Cómo sabemos que el programa calcula bien las fuerzas?** Comparando el gradiente analítico
+con el numérico (mover un átomo 0.005 Å y ver cuánto cambia la energía). Es una comprobación
+que todo código de simulación debería pasar antes de usarse:
+""")
+
+code(r'''
+grad = datos.csv("qmmm/comprobacion_gradiente.csv")
+grad["error relativo"] = (grad["diff"].abs() / grad["analytic"].abs().clip(lower=1e-6)).map(lambda x: f"{x:.1%}")
+display(grad.round(3))
+''')
+
+# ============================================================================ 7. R, P y escaneo
+md(r"""
+## 7. Reactivo, producto y el perfil de energía
+
+**Simple.** Primero relajamos la región QM en su punto de partida (el **reactivo**: glucosa +
+ATP). Luego construimos el **producto** (glucosa‑6‑fosfato + ADP, con el protón de O6 ya en
+Asp205) y también lo relajamos. La diferencia de energía nos dice si la reacción es
+"cuesta abajo" o "cuesta arriba" dentro de la enzima.
+
+**Más detalle: la coordenada de reacción.** Para seguir la transferencia usamos un solo
+número que cambia de forma continua entre reactivo y producto:
+
+$$\xi = d(\mathrm{P_\gamma - O_{3\beta}}) - d(\mathrm{P_\gamma - O_6})$$
+
+En el reactivo el Pγ está unido a O3β (ξ ≈ −1.5 Å); en el producto está unido a O6
+(ξ ≈ +1.8 Å). Un **escaneo relajado** fija ξ en valores intermedios (con una restricción
+armónica) y deja que todo lo demás se acomode: el resultado es un **perfil de energía**
+aproximado, y su punto más alto es una primera estimación del estado de transición.
+""")
+
+code(r'''
+if MODO == "completo":
+    subprocess.run([sys.executable, "scripts/03_qmmm_reaccion.py"], check=True)
+
+res = datos.json_("qmmm/resumen.json")
+R, P = res["etapas"]["reactivo"], res["etapas"]["producto"]
+print("Reactivo:  d(Pγ–O6) = %.2f Å, d(Pγ–O3β) = %.2f Å, ξ = %+.2f Å" % (R["d_PG_O6"], R["d_PG_O3B"], R["xi"]))
+print("Producto:  d(Pγ–O6) = %.2f Å, d(Pγ–O3β) = %.2f Å, ξ = %+.2f Å" % (P["d_PG_O6"], P["d_PG_O3B"], P["xi"]))
+print("Protón del O6: en el reactivo d(O6–H) = %.2f Å; en el producto d(OD1–H) = %.2f Å (Asp205 protonado)" % (R["d_O6_H"], P["d_OD1_H"]))
+print("ΔE(reacción) = %+.1f kcal/mol dentro de la enzima (entorno fijo, PM7)" % P["dE_reaccion_kcal"])
+''')
+
+code(r'''
+escaneo = datos.csv("qmmm/escaneo.csv")
+fig = viz.plot_energy_profile(escaneo["xi"].values, escaneo["energia_kcal"].values,
+                              xlabel="ξ = d(Pγ–O3β) − d(Pγ–O6)  (Å)",
+                              ts_index=int(escaneo["energia_rel_kcal"].idxmax()),
+                              title="Escaneo relajado de la transferencia de fosforilo",
+                              subtitle="PM7 en el campo de la enzima; el máximo es una primera estimación del TS")
+fig;
+''')
+
+code(r'''
+# Animación del escaneo: el fosfato viaja del ATP a la glucosa
+simbolos, cuadros, comentarios = datos.leer_xyz_multiple("qmmm/escaneo.xyz")
+viz.view_frames(cuadros, simbolos, interval_ms=300)
+''')
+
+# ============================================================================ 8. TS
+md(r"""
+## 8. El estado de transición
+
+**Simple.** El escaneo nos dio una colina aproximada, pero forzando una sola distancia. El
+verdadero estado de transición es un **punto de silla**: un máximo a lo largo del camino de
+reacción y un mínimo en todas las demás direcciones (como el paso entre dos montañas).
+
+**Cómo se localiza (tres pasos):**
+
+1. **NEB con imagen trepadora** (*nudged elastic band*): una cadena de geometrías entre
+   reactivo y producto, unidas por muelles, que se relaja hasta dibujar el camino de mínima
+   energía. La imagen más alta "trepa" hasta la cima. Es el análogo moderno del método
+   **QST2** (dos extremos → TS) que usan Gaussian y MOPAC.
+2. **Método del dímero**: refina la cima usando solo gradientes, hasta que la fuerza es cero.
+3. **Frecuencias**: en un punto de silla verdadero hay **exactamente una** frecuencia
+   imaginaria, y su vector describe el movimiento de la reacción. Es la prueba definitiva.
+""")
+
+code(r'''
+neb = datos.csv("qmmm/neb.csv")
+perfiles = [(escaneo["xi"].values, escaneo["energia_kcal"].values, "escaneo restringido"),
+            (neb["xi"].values, neb["energia_kcal"].values, "NEB (imagen trepadora)")]
+fig = viz.plot_energy_profiles(perfiles, xlabel="ξ (Å)", title="Del escaneo al camino de mínima energía",
+                               subtitle="El NEB relaja todas las coordenadas a la vez; la imagen trepadora sube a la cima")
+fig;
+''')
+
+code(r'''
+ts = res["etapas"].get("dimero", {})
+fr = res["etapas"].get("frecuencias", {})
+print("TS refinado (dímero): barrera = %.1f kcal/mol; ξ = %+.2f Å; d(Pγ–O6) = %.2f Å; d(Pγ–O3β) = %.2f Å"
+      % (ts["barrera_kcal"], ts["xi"], ts["d_PG_O6"], ts["d_PG_O3B"]))
+print("Frecuencias más bajas (cm⁻¹, negativas = imaginarias):", np.round(fr["frecuencias_mas_bajas"], 1))
+val = fr["validacion"]
+print("Modos imaginarios:", val["imaginary_mode_count"], "→", "punto de silla de primer orden ✔" if val["ok"] else "revisar ✘")
+''')
+
+md(r"""
+**El movimiento del estado de transición.** La frecuencia imaginaria corresponde a una
+vibración que no oscila, sino que "cae" hacia reactivo o hacia producto. Animándola vemos
+literalmente la química: el Pγ se despega del ADP y se pega a la glucosa, y el protón de O6
+viaja hacia Asp205.
+""")
+
+code(r'''
+vibra = np.load(datos.ruta("qmmm/frecuencias_ts.npz"))
+cuadros_modo = viz.mode_animation_frames(vibra["ts_xyz"], vibra["modo_imaginario"], n_frames=24, amplitude=0.6)
+viz.view_frames(cuadros_modo, list(vibra["simbolos"]), interval_ms=60, bonds_from=leer("qmmm/ts.pdb"))
+''')
+
+md(r"""
+**Bajar de la cima.** Si empujamos el TS un poquito a cada lado a lo largo del modo
+imaginario y dejamos que la geometría relaje, descendemos por el camino de mínima energía
+hasta el reactivo y hasta el producto. Esto confirma que **este** TS conecta **estos**
+reactivos con **estos** productos (es la idea del IRC, *intrinsic reaction coordinate*).
+""")
+
+code(r'''
+camino = datos.csv("qmmm/camino_descenso.csv")
+fig = viz.plot_energy_profile(camino["xi"].values, camino["energia_kcal"].values, xlabel="ξ (Å)",
+                              ts_index=int(camino["energia_rel_kcal"].idxmax()), smooth=False,
+                              title="Camino de mínima energía descendente desde el TS",
+                              subtitle="Cada punto es una geometría relajada; el TS está en el centro")
+fig;
+''')
+
+code(r'''
+niveles = [("E·S (reactivo)", 0.0), ("TS", ts["barrera_kcal"]), ("E·P (producto)", P["dE_reaccion_kcal"])]
+fig = viz.plot_energy_levels(niveles, ts_indices=[1], title="Diagrama de energía de la reacción en la enzima",
+                             subtitle="PM7/Amber, entorno fijo: energías electrónicas relativas, no energías libres")
+fig;
+''')
+
+# ============================================================================ 9. vacío
+md(r"""
+## 9. La misma reacción **sin** enzima
+
+**Simple.** ¿Qué pasa si quitamos la enzima y dejamos solo las moléculas que reaccionan? La
+colina debería ser mucho más alta: eso es, precisamente, la catálisis.
+
+**Más detalle.** Tomamos el mismo clúster QM (glucosa, trifosfato, Mg²⁺, agua y las tres
+cadenas laterales, con sus átomos ancla fijos) pero **sin el potencial de la enzima** y lo
+tratamos con los métodos nativos de MOPAC, tal como los orquesta la suite Leonardo:
+
+| Nombre en Leonardo | Palabra clave MOPAC | Qué hace |
+|---|---|---|
+| QST2 | `SADDLE` | Busca el TS a partir de reactivo y producto |
+| QST3 / TS | `TS` | Refina el punto de silla (Hessiano, seguimiento del modo) |
+| Validación | `FORCETS` | Frecuencias: una imaginaria |
+| Camino | `IRC=1*` | Sigue el camino de reacción en ambas direcciones |
+
+En vacío estos métodos son rigurosos; dentro de la enzima usamos NEB/dímero porque el
+potencial de `mol.in` es constante por átomo y no "sigue" a los átomos cuando se mueven.
+""")
+
+code(r'''
+vac = res["etapas"]["vacio"]
+print("Sin enzima (vacío): ΔE(reacción) = %+.1f kcal/mol; barrera SADDLE→TS = %.1f kcal/mol" % (vac["dE_reaccion"], vac["barrera_vacio_kcal"]))
+print("Frecuencias más bajas del TS en vacío (cm⁻¹):", np.round(vac["frecuencias_mas_bajas"], 1))
+print("Validación FORCETS:", "una frecuencia imaginaria ✔" if vac["validacion_ts"]["ok"] else vac["validacion_ts"])
+try:
+    irc = datos.csv("qmmm/vacio_irc.csv")
+    fig = viz.plot_energy_profile(irc["xi"].values, irc["energia_kcal"].values, xlabel="ξ (Å)", smooth=False,
+                                  ts_index=int(irc["energia_rel_kcal"].idxmax()), title="IRC de MOPAC en vacío",
+                                  subtitle="Camino intrínseco de reacción desde el TS localizado con SADDLE + TS")
+    fig;
+except FileNotFoundError:
+    print("(el IRC en vacío no está disponible en estos datos)")
+''')
+
+code(r'''
+con = [("E·S", 0.0), ("TS", ts["barrera_kcal"]), ("E·P", P["dE_reaccion_kcal"])]
+sin = [("R", 0.0), ("TS", vac["barrera_vacio_kcal"]), ("P", vac["dE_reaccion"])]
+fig = viz.plot_energy_levels(con, compare=sin, ts_indices=[1], title="Con enzima frente a sin enzima",
+                             subtitle="La enzima baja la colina: eso es la catálisis")
+fig;
+print("Reducción de la barrera por la enzima: %.1f kcal/mol" % (vac["barrera_vacio_kcal"] - ts["barrera_kcal"]))
+''')
+
+# ============================================================================ 10. barrera -> kcat
+md(r"""
+## 10. De la barrera a *k*<sub>cat</sub>
+
+**Simple.** Con la altura de la colina y la ecuación de Eyring podemos estimar cuántas veces
+por segundo la enzima completa la reacción: ese número es **k**<sub>cat</sub>, el "número
+de recambio".
+
+**Con honestidad.** Nuestra barrera es una **energía electrónica** (ΔE‡) de un método
+semiempírico (PM7) con el entorno congelado. La ecuación de Eyring necesita una **energía
+libre** (ΔG‡ = ΔH‡ − TΔS‡), que incluye la entropía y el promedio sobre muchas
+conformaciones. Por eso comparamos órdenes de magnitud, no decimales.
+""")
+
+code(r'''
+T = 298.15
+k_qmmm = cin.eyring_rate(ts["barrera_kcal"], T)
+k_vac = cin.eyring_rate(vac["barrera_vacio_kcal"], T)
+k_exp = ref["kcat_s"]["value"]
+print(f"Barrera QM/MM = {ts['barrera_kcal']:.1f} kcal/mol  →  k ≈ {k_qmmm:.2e} s⁻¹")
+print(f"Barrera en vacío = {vac['barrera_vacio_kcal']:.1f} kcal/mol  →  k ≈ {k_vac:.2e} s⁻¹")
+print(f"k_cat experimental ≈ {k_exp} s⁻¹  ↔  ΔG‡ ≈ {cin.barrier_from_rate(k_exp, T):.1f} kcal/mol")
+print(f"Aceleración estimada por la enzima (vacío → enzima): {cin.rate_enhancement(k_qmmm, k_vac):.1e} veces")
+''')
+
+# ============================================================================ 11. MM
+md(r"""
+## 11. Michaelis–Menten desde el mecanismo
+
+**Simple.** Si medimos la velocidad de una enzima con cada vez más sustrato, al principio
+la velocidad sube casi en línea recta y luego se **satura**: la enzima ya no da abasto. La
+curva tiene forma de hipérbola y se describe con dos números:
+
+* **V**<sub>max</sub>: la velocidad máxima (todas las enzimas ocupadas).
+* **K**<sub>M</sub>: la concentración de sustrato a la que se alcanza la mitad de V<sub>max</sub>.
+
+**El mecanismo que hay detrás.** Michaelis y Menten (1913) y Briggs y Haldane (1925) lo
+explicaron con dos pasos:
+
+$$\mathrm{E + S \;\underset{k_{-1}}{\overset{k_1}{\rightleftharpoons}}\; ES \;\overset{k_2}{\longrightarrow}\; E + P}$$
+
+Suponiendo que la concentración de ES apenas cambia (**estado estacionario**):
+
+$$v_0 = \frac{V_{\max}[S]}{K_M + [S]}, \qquad V_{\max} = k_2[E]_0 = k_{\mathrm{cat}}[E]_0, \qquad K_M = \frac{k_{-1}+k_2}{k_1}$$
+
+En lugar de creer la fórmula, vamos a **resolver el mecanismo numéricamente** y ver cómo
+la hipérbola aparece sola.
+""")
+
+code(r'''
+# Constantes de velocidad ilustrativas (unidades: µM y s)
+k1, k_1, k2 = 1.0, 50.0, 60.0          # k2 = k_cat ≈ 60 s⁻¹ (glucoquinasa)
+E0 = 0.05                               # µM de enzima
+sim = cin.simulate_mechanism(e0=E0, s0=500.0, k1=k1, k_minus1=k_1, k2=k2, t_end=2.0)
+fig = viz.plot_ode_simulation(sim, t_zoom=(0, 0.05),
+                              subtitle="ES se forma en milisegundos (pre‑estado estacionario) y luego casi no cambia")
+fig;
+''')
+
+code(r'''
+S = np.array([5, 10, 20, 40, 80, 150, 300, 600, 1200, 2400])       # µM
+v0_sim = cin.initial_rates_from_simulation(E0, S, k1, k_1, k2, t_window=(0.01, 0.1))
+ajuste = cin.fit_michaelis_menten(S, v0_sim)
+teoria = cin.steady_state_parameters(k1, k_1, k2)
+fig = viz.plot_initial_rates_from_ode(S, v0_sim, fit=ajuste)
+fig;
+print(f"K_M ajustada = {ajuste['km']:.1f} µM  frente a  (k₋₁ + k₂)/k₁ = {teoria['km']:.1f} µM")
+print(f"V_max ajustada = {ajuste['vmax']:.3f} µM/s  frente a  k₂·[E]₀ = {k2 * E0:.3f} µM/s")
+''')
+
+md(r"""
+**Ahora con "datos de laboratorio".** Simulamos un experimento realista con ruido del 4 %
+(parámetros de la literatura) y hacemos lo que hace un bioquímico: ajuste no lineal y las
+tres linealizaciones clásicas. Fíjate en que **Lineweaver–Burk** amplifica el error de los
+puntos a baja concentración: hoy se usa para *visualizar*, y el ajuste no lineal para
+*cuantificar*.
+""")
+
+code(r'''
+rng = np.random.default_rng(7)
+S_mM = np.array([0.5, 1, 2, 3, 5, 7.5, 10, 15, 20, 30, 40, 60])
+Vmax_real, Km_real = 12.0, 7.5                       # µM/s, mM (hipotéticos para una hexoquinasa)
+v_obs = cin.michaelis_menten(S_mM, Vmax_real, Km_real) * (1 + 0.04 * rng.standard_normal(S_mM.size))
+aj = cin.fit_michaelis_menten(S_mM, v_obs)
+fig = viz.plot_michaelis_menten(S_mM, v_obs, fit=aj, title="Curva de saturación de Michaelis–Menten",
+                                subtitle="Datos simulados con ruido del 4 %; línea: ajuste no lineal")
+fig;
+print(f"V_max = {aj['vmax']:.2f} ± {aj['vmax_err']:.2f} µM/s;  K_M = {aj['km']:.2f} ± {aj['km_err']:.2f} mM;  R² = {aj['r2']:.4f}")
+E0_uM = 0.2
+print(f"Con [E]₀ = {E0_uM} µM:  k_cat = V_max/[E]₀ = {aj['vmax']/E0_uM:.0f} s⁻¹;  k_cat/K_M = {aj['vmax']/E0_uM/(aj['km']*1e-3):.2e} M⁻¹s⁻¹")
+''')
+
+code(r'''
+fig = viz.plot_linearizations(S_mM, v_obs, subtitle="Las tres rectas dan V_max y K_M por los cortes con los ejes")
+fig;
+''')
+
+# ============================================================================ 12. Hill
+md(r"""
+## 12. Cooperatividad: la glucoquinasa es un sensor
+
+**Simple.** La glucoquinasa **no** sigue la hipérbola. Su curva es una **S** (sigmoide): a
+baja glucosa casi no trabaja, y entre 5 y 10 mM (justo el rango de la glucosa en sangre)
+su actividad se dispara. Así el páncreas "nota" un cambio pequeño de glucosa y responde con
+insulina.
+
+**Más detalle.** Las sigmoides se describen con la **ecuación de Hill**:
+
+$$v_0 = \frac{V_{\max}[S]^{n}}{S_{0.5}^{\,n} + [S]^{n}}$$
+
+* $n$ = **coeficiente de Hill**. $n=1$ recupera Michaelis–Menten; $n>1$ indica cooperatividad.
+* Para la glucoquinasa $n ≈ 1.7$ y $S_{0.5} ≈ 7.5$ mM.
+
+**Lo sorprendente.** La glucoquinasa es un **monómero** con un solo sitio: no puede haber
+"comunicación entre subunidades" como en la hemoglobina. Su cooperatividad es **cinética**:
+la enzima cambia lentamente entre una forma poco activa (abierta) y una activa (cerrada), y
+la glucosa la atrapa en la activa. Es el modelo **mnemónico** / de transición lenta. Las
+simulaciones de MD de la sección 4 (dominios que se abren y cierran) son la imagen
+molecular de ese cambio.
+""")
+
+code(r'''
+S_g = np.linspace(0.01, 30, 300)
+v_mm = cin.michaelis_menten(S_g, 1.0, 7.5)
+v_hill = cin.hill(S_g, 1.0, 7.5, 1.7)
+fig = viz.plot_hill_vs_mm(S_g, v_mm, v_hill, n_hill=1.7, s_half=7.5, ylabel="v₀ / V_max",
+                          title="Glucoquinasa: sigmoide (Hill) frente a hipérbola",
+                          subtitle="Entre 5 y 10 mM de glucosa la sigmoide es mucho más sensible")
+fig;
+s10, s90 = cin.substrate_at_fraction(1.0, 7.5, 1.7, 0.1), cin.substrate_at_fraction(1.0, 7.5, 1.7, 0.9)
+print(f"Para pasar del 10 % al 90 % de V_max: MM necesita ×81 en [S]; con n = 1.7 solo ×{s90/s10:.0f}")
+''')
+
+code(r'''
+# Ajuste de Hill a datos simulados y gráfico de Hill (la pendiente es n)
+S_h = np.array([1, 2, 3, 4, 5, 6, 7.5, 9, 11, 14, 18, 25, 35, 50])
+v_h = cin.hill(S_h, 10.0, 7.5, 1.7) * (1 + 0.03 * rng.standard_normal(S_h.size))
+ajh = cin.fit_hill(S_h, v_h)
+print(f"Ajuste de Hill: V_max = {ajh['vmax']:.2f}, S_0.5 = {ajh['s_half']:.2f} mM, n = {ajh['n']:.2f} ± {ajh['n_err']:.2f}")
+fig = viz.plot_hill_plot(S_h, v_h, ajh["vmax"], subtitle="log[v/(V_max − v)] frente a log[S]: la pendiente es el coeficiente de Hill")
+fig;
+''')
+
+# ============================================================================ 13. inhibición
+md(r"""
+## 13. Inhibidores y activadores
+
+**Simple.** Un **inhibidor** es una molécula que frena a la enzima. Hay tres formas clásicas
+de frenarla, y cada una deja una "huella" distinta en las curvas:
+
+| Tipo | Dónde se une | Efecto sobre V<sub>max</sub> | Efecto sobre K<sub>M</sub> |
+|---|---|---|---|
+| Competitivo | al sitio activo, compitiendo con S | no cambia | sube |
+| Acompetitivo | solo al complejo ES | baja | baja |
+| No competitivo | a E y a ES por igual | baja | no cambia |
+
+**En la glucoquinasa.** La **manoheptulosa** y la **N‑acetilglucosamina** compiten con la
+glucosa. En el hígado, la **proteína reguladora GKRP** secuestra a la enzima cuando la glucosa
+baja. Y existen **activadores alostéricos** (GKA, en desarrollo clínico para la diabetes) que
+se unen lejos del sitio activo y bajan S<sub>0.5</sub>: lo contrario de un inhibidor.
+
+En el gráfico de Lineweaver–Burk las rectas de un inhibidor competitivo se cruzan en el eje
+y; las de uno no competitivo en el eje x; las de uno acompetitivo son paralelas.
+""")
+
+code(r'''
+S_i = np.linspace(0.2, 60, 200)
+I_conc = [0, 2, 5, 10]                        # mM de inhibidor
+Ki = 3.0
+for tipo in ("competitive", "noncompetitive", "uncompetitive"):
+    curvas = [(I, getattr(cin, f"{tipo}_inhibition")(S_i, Vmax_real, Km_real, I, Ki)) for I in I_conc]
+    fig, axes = viz.figure(11, 4, ncols=2)
+    viz.plot_inhibition_family(S_i, curvas, kind=tipo, ax=axes[0])
+    viz.plot_inhibition_lineweaver(S_i[S_i > 1.5], [(I, v[S_i > 1.5]) for I, v in curvas], kind=tipo, ax=axes[1])
+    fig;
+''')
+
+code(r'''
+# Un experimento con inhibidor competitivo: ajuste global de K_i
+S_exp = np.array([1, 2, 4, 8, 16, 32, 64])
+filas = []
+for I in (0, 2, 5):
+    v = cin.competitive_inhibition(S_exp, Vmax_real, Km_real, I, Ki) * (1 + 0.03 * rng.standard_normal(S_exp.size))
+    filas += [(s, vv, I) for s, vv in zip(S_exp, v)]
+df_i = pd.DataFrame(filas, columns=["S", "v", "I"])
+aji = cin.fit_inhibition(df_i.S.values, df_i.v.values, df_i.I.values, kind="competitive")
+print(f"K_i ajustada = {aji['ki']:.2f} ± {aji['ki_err']:.2f} mM (valor real 3.0);  K_M = {aji['km']:.2f} mM;  V_max = {aji['vmax']:.2f} µM/s")
+''')
+
+# ============================================================================ 14. T y pH
+md(r"""
+## 14. Temperatura y pH
+
+**Simple.** Calentar acelera casi todas las reacciones (hasta que la enzima se desnaturaliza).
+Y cada enzima tiene un pH óptimo: por encima o por debajo, los grupos que hacen la química
+pierden la carga que necesitan.
+
+**Más detalle.**
+
+* **Arrhenius**: $\ln k = \ln A - E_a/RT$. La pendiente de $\ln k$ frente a $1/T$ da la energía de activación.
+* **Eyring**: $\ln(k/T) = \ln(k_B/h) + \Delta S^{\ddagger}/R - \Delta H^{\ddagger}/RT$. Separa la barrera en entalpía y entropía.
+* **pH**: si un grupo debe estar desprotonado (Asp205, la base catalítica) y otro protonado
+  (Lys169, que estabiliza el fosfato), la actividad tiene forma de campana:
+  $v = v_{\max}/(1 + 10^{pK_1 - pH} + 10^{pH - pK_2})$.
+""")
+
+code(r'''
+T_K = np.array([283.15, 288.15, 293.15, 298.15, 303.15, 308.15, 313.15])
+dH, dS = 12.0, -8.0                       # kcal/mol, cal/mol/K (ilustrativos)
+k_T = np.array([cin.eyring_rate(dH - T * dS / 1000, T) for T in T_K]) * (1 + 0.03 * rng.standard_normal(T_K.size))
+aj_arr, aj_eyr = cin.fit_arrhenius(T_K, k_T), cin.fit_eyring(T_K, k_T)
+fig, axes = viz.figure(11, 4, ncols=2)
+viz.plot_arrhenius(T_K, k_T, fit=aj_arr, ax=axes[0]); viz.plot_eyring(T_K, k_T, fit=aj_eyr, ax=axes[1])
+fig;
+print(f"Arrhenius: E_a = {aj_arr['ea_kcal']:.1f} kcal/mol.   Eyring: ΔH‡ = {aj_eyr['delta_h_kcal']:.1f} kcal/mol, ΔS‡ = {aj_eyr['delta_s_cal']:.1f} cal/mol/K, ΔG‡(25 °C) = {aj_eyr['delta_g_kcal']:.1f} kcal/mol")
+''')
+
+code(r'''
+pH = np.linspace(4, 11, 200)
+v_pH = cin.bell_shaped_ph_profile(pH, 1.0, pka1=5.5, pka2=9.0)
+fig = viz.plot_ph_profile(pH, v_pH, pkas=(5.5, 9.0), ylabel="v₀ / V_max",
+                          subtitle="Asp205 debe estar desprotonado (pK₁) y Lys169 protonada (pK₂)")
+fig;
+''')
+
+# ============================================================================ 15. resumen
+md(r"""
+## 15. Resumen y ejercicios
+
+**Lo que hemos visto, en una frase cada cosa:**
+
+1. Una enzima acelera una reacción **bajando la barrera** de energía del estado de transición.
+2. La estructura cristalina (3FGU) muestra a los reactivos ya alineados; la MD muestra que la enzima **los mantiene alineados**.
+3. QM/MM permite **ver la química** (romper y formar enlaces) dentro de la enzima; hay que
+   cuidar la partición, los átomos de enlace, la electrostática y la repulsión QM–MM.
+4. El estado de transición es un **punto de silla**, se localiza (escaneo → NEB → dímero) y se
+   **valida** con una única frecuencia imaginaria y con el camino que baja hacia R y P.
+5. Eyring convierte la barrera en una constante de velocidad; PM7 y el entorno fijo hacen que
+   la comparación con *k*<sub>cat</sub> sea de orden de magnitud.
+6. Michaelis–Menten **emerge** del mecanismo E + S ⇌ ES → E + P; K<sub>M</sub> y V<sub>max</sub>
+   se obtienen mejor por ajuste no lineal.
+7. La glucoquinasa es **sigmoide** (n ≈ 1.7) sin tener varias subunidades: cooperatividad cinética.
+8. Cada tipo de inhibidor deja una huella distinta en las curvas; los activadores hacen lo contrario.
+
+**Ejercicios**
+
+1. Cambia `umbral` en la sección 4 a 3.0 y 4.0 Å. ¿Cómo cambia la fracción de conformaciones
+   de ataque cercano? ¿Qué pasaría con *k*<sub>cat</sub> si la enzima no cerrara sus dominios?
+2. Con la ecuación de Eyring, calcula cuánto tendría que bajar la barrera para multiplicar
+   *k*<sub>cat</sub> por 1000.
+3. En la sección 11, cambia `k2` a 6 s⁻¹ y a 600 s⁻¹. ¿Cómo cambian K<sub>M</sub> y V<sub>max</sub>?
+   ¿Cuándo K<sub>M</sub> ≈ K<sub>d</sub> = k<sub>−1</sub>/k<sub>1</sub>?
+4. Simula datos con n = 1.0, 1.4 y 2.0 en la sección 12 y ajústalos con Michaelis–Menten.
+   ¿Qué error cometes si ignoras la cooperatividad?
+5. Diseña un experimento (concentraciones de S e I) que distinga un inhibidor competitivo de
+   uno mixto con K<sub>i</sub>' = 3K<sub>i</sub>. Usa `cin.fit_inhibition` para comprobarlo.
+6. (Avanzado, modo `completo`) En `enzimas/glucoquinasa.py` cambia `QM_RESIDUES` para sacar
+   Lys169 de la región QM (quedará como cargas MM) y recalcula el escaneo. ¿Sube o baja la barrera?
+   Esto es un "mutante computacional" y conecta con la diabetes MODY2.
+
+**Referencias**
+
+* Petit, P. *et al.* (2011) *Acta Cryst. D* 67, 929–935 (PDB 3FGU, complejo catalítico de la glucoquinasa).
+* Kamata, K. *et al.* (2004) *Structure* 12, 429–438 (formas abierta y cerrada; cooperatividad).
+* Matschinsky, F. M. (2009) *Nat. Rev. Drug Discov.* 8, 399–416 (glucoquinasa como sensor y diana).
+* Cornish‑Bowden, A. *Fundamentals of Enzyme Kinetics*, 4ª ed. (2012).
+* Senn, H. M. & Thiel, W. (2009) *Angew. Chem. Int. Ed.* 48, 1198–1229 (métodos QM/MM).
+* Stewart, J. J. P. (2013) *J. Mol. Model.* 19, 1–32 (PM7). Larsen, A. H. *et al.* (2017) *J. Phys.: Condens. Matter* 29, 273002 (ASE).
+
+*Herramientas QM/MM adaptadas de la suite [Leonardo](https://github.com/juvenalyosa/Leonardo) (Juvenal Yosa, MIT).*
+""")
+
+
+def main():
+    nb = nbf.v4.new_notebook()
+    nb["cells"] = CELLS
+    nb["metadata"] = {
+        "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+        "language_info": {"name": "python"},
+        "colab": {"name": "Cinética enzimática con QM/MM: glucoquinasa", "provenance": []},
+    }
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    nbf.write(nb, str(OUT))
+    print("escrito", OUT, "con", len(CELLS), "celdas")
+
+
+if __name__ == "__main__":
+    main()

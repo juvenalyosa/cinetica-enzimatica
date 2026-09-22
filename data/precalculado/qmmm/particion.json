@@ -1,0 +1,671 @@
+{
+ "n_qm": 74,
+ "n_link": 4,
+ "n_free": 70,
+ "n_mm": 2335,
+ "qm_charge": -2,
+ "mm_charge": -2.000999087381944,
+ "charge_correction_e": 0.7337010092030063,
+ "qm_atoms": [
+  {
+   "k": 0,
+   "name": "C2",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "C",
+   "global_index": 7072
+  },
+  {
+   "k": 1,
+   "name": "C3",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "C",
+   "global_index": 7073
+  },
+  {
+   "k": 2,
+   "name": "C4",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "C",
+   "global_index": 7074
+  },
+  {
+   "k": 3,
+   "name": "C5",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "C",
+   "global_index": 7075
+  },
+  {
+   "k": 4,
+   "name": "C6",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "C",
+   "global_index": 7076
+  },
+  {
+   "k": 5,
+   "name": "C1",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "C",
+   "global_index": 7077
+  },
+  {
+   "k": 6,
+   "name": "O1",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "O",
+   "global_index": 7078
+  },
+  {
+   "k": 7,
+   "name": "O2",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "O",
+   "global_index": 7079
+  },
+  {
+   "k": 8,
+   "name": "O3",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "O",
+   "global_index": 7080
+  },
+  {
+   "k": 9,
+   "name": "O4",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "O",
+   "global_index": 7081
+  },
+  {
+   "k": 10,
+   "name": "O5",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "O",
+   "global_index": 7082
+  },
+  {
+   "k": 11,
+   "name": "O6",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "O",
+   "global_index": 7083
+  },
+  {
+   "k": 12,
+   "name": "H1",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "H",
+   "global_index": 7084
+  },
+  {
+   "k": 13,
+   "name": "H2",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "H",
+   "global_index": 7085
+  },
+  {
+   "k": 14,
+   "name": "H3",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "H",
+   "global_index": 7086
+  },
+  {
+   "k": 15,
+   "name": "H4",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "H",
+   "global_index": 7087
+  },
+  {
+   "k": 16,
+   "name": "H5",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "H",
+   "global_index": 7088
+  },
+  {
+   "k": 17,
+   "name": "H6",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "H",
+   "global_index": 7089
+  },
+  {
+   "k": 18,
+   "name": "H7",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "H",
+   "global_index": 7090
+  },
+  {
+   "k": 19,
+   "name": "H8",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "H",
+   "global_index": 7091
+  },
+  {
+   "k": 20,
+   "name": "H9",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "H",
+   "global_index": 7092
+  },
+  {
+   "k": 21,
+   "name": "H10",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "H",
+   "global_index": 7093
+  },
+  {
+   "k": 22,
+   "name": "H11",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "H",
+   "global_index": 7094
+  },
+  {
+   "k": 23,
+   "name": "H12",
+   "resname": "GLC",
+   "resseq": 455,
+   "element": "H",
+   "global_index": 7095
+  },
+  {
+   "k": 24,
+   "name": "PG",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "P",
+   "global_index": 7096
+  },
+  {
+   "k": 25,
+   "name": "O1G",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "O",
+   "global_index": 7097
+  },
+  {
+   "k": 26,
+   "name": "O2G",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "O",
+   "global_index": 7098
+  },
+  {
+   "k": 27,
+   "name": "O3G",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "O",
+   "global_index": 7099
+  },
+  {
+   "k": 28,
+   "name": "PB",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "P",
+   "global_index": 7100
+  },
+  {
+   "k": 29,
+   "name": "O1B",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "O",
+   "global_index": 7101
+  },
+  {
+   "k": 30,
+   "name": "O2B",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "O",
+   "global_index": 7102
+  },
+  {
+   "k": 31,
+   "name": "O3B",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "O",
+   "global_index": 7103
+  },
+  {
+   "k": 32,
+   "name": "PA",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "P",
+   "global_index": 7104
+  },
+  {
+   "k": 33,
+   "name": "O1A",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "O",
+   "global_index": 7105
+  },
+  {
+   "k": 34,
+   "name": "O2A",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "O",
+   "global_index": 7106
+  },
+  {
+   "k": 35,
+   "name": "O3A",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "O",
+   "global_index": 7107
+  },
+  {
+   "k": 36,
+   "name": "O5'",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "O",
+   "global_index": 7108
+  },
+  {
+   "k": 37,
+   "name": "C5'",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "C",
+   "global_index": 7109
+  },
+  {
+   "k": 38,
+   "name": "H1",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "H",
+   "global_index": 7127
+  },
+  {
+   "k": 39,
+   "name": "H2",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "H",
+   "global_index": 7128
+  },
+  {
+   "k": 40,
+   "name": "CB",
+   "resname": "ASP",
+   "resseq": 201,
+   "element": "C",
+   "global_index": 3209
+  },
+  {
+   "k": 41,
+   "name": "HB2",
+   "resname": "ASP",
+   "resseq": 201,
+   "element": "H",
+   "global_index": 3210
+  },
+  {
+   "k": 42,
+   "name": "HB3",
+   "resname": "ASP",
+   "resseq": 201,
+   "element": "H",
+   "global_index": 3211
+  },
+  {
+   "k": 43,
+   "name": "CG",
+   "resname": "ASP",
+   "resseq": 201,
+   "element": "C",
+   "global_index": 3212
+  },
+  {
+   "k": 44,
+   "name": "OD1",
+   "resname": "ASP",
+   "resseq": 201,
+   "element": "O",
+   "global_index": 3213
+  },
+  {
+   "k": 45,
+   "name": "OD2",
+   "resname": "ASP",
+   "resseq": 201,
+   "element": "O",
+   "global_index": 3214
+  },
+  {
+   "k": 46,
+   "name": "CB",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "C",
+   "global_index": 2666
+  },
+  {
+   "k": 47,
+   "name": "HB2",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "H",
+   "global_index": 2667
+  },
+  {
+   "k": 48,
+   "name": "HB3",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "H",
+   "global_index": 2668
+  },
+  {
+   "k": 49,
+   "name": "CG",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "C",
+   "global_index": 2669
+  },
+  {
+   "k": 50,
+   "name": "HG2",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "H",
+   "global_index": 2670
+  },
+  {
+   "k": 51,
+   "name": "HG3",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "H",
+   "global_index": 2671
+  },
+  {
+   "k": 52,
+   "name": "CD",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "C",
+   "global_index": 2672
+  },
+  {
+   "k": 53,
+   "name": "HD2",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "H",
+   "global_index": 2673
+  },
+  {
+   "k": 54,
+   "name": "HD3",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "H",
+   "global_index": 2674
+  },
+  {
+   "k": 55,
+   "name": "CE",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "C",
+   "global_index": 2675
+  },
+  {
+   "k": 56,
+   "name": "HE2",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "H",
+   "global_index": 2676
+  },
+  {
+   "k": 57,
+   "name": "HE3",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "H",
+   "global_index": 2677
+  },
+  {
+   "k": 58,
+   "name": "NZ",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "N",
+   "global_index": 2678
+  },
+  {
+   "k": 59,
+   "name": "HZ1",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "H",
+   "global_index": 2679
+  },
+  {
+   "k": 60,
+   "name": "HZ2",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "H",
+   "global_index": 2680
+  },
+  {
+   "k": 61,
+   "name": "HZ3",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "H",
+   "global_index": 2681
+  },
+  {
+   "k": 62,
+   "name": "CB",
+   "resname": "THR",
+   "resseq": 224,
+   "element": "C",
+   "global_index": 3544
+  },
+  {
+   "k": 63,
+   "name": "HB",
+   "resname": "THR",
+   "resseq": 224,
+   "element": "H",
+   "global_index": 3545
+  },
+  {
+   "k": 64,
+   "name": "OG1",
+   "resname": "THR",
+   "resseq": 224,
+   "element": "O",
+   "global_index": 3550
+  },
+  {
+   "k": 65,
+   "name": "HG1",
+   "resname": "THR",
+   "resseq": 224,
+   "element": "H",
+   "global_index": 3551
+  },
+  {
+   "k": 66,
+   "name": "CG2",
+   "resname": "THR",
+   "resseq": 224,
+   "element": "C",
+   "global_index": 3546
+  },
+  {
+   "k": 67,
+   "name": "HG21",
+   "resname": "THR",
+   "resseq": 224,
+   "element": "H",
+   "global_index": 3547
+  },
+  {
+   "k": 68,
+   "name": "HG22",
+   "resname": "THR",
+   "resseq": 224,
+   "element": "H",
+   "global_index": 3548
+  },
+  {
+   "k": 69,
+   "name": "HG23",
+   "resname": "THR",
+   "resseq": 224,
+   "element": "H",
+   "global_index": 3549
+  },
+  {
+   "k": 70,
+   "name": "MG",
+   "resname": "MG",
+   "resseq": 457,
+   "element": "Mg",
+   "global_index": 7139
+  },
+  {
+   "k": 71,
+   "name": "O",
+   "resname": "HOH",
+   "resseq": 562,
+   "element": "O",
+   "global_index": 7408
+  },
+  {
+   "k": 72,
+   "name": "H1",
+   "resname": "HOH",
+   "resseq": 562,
+   "element": "H",
+   "global_index": 7409
+  },
+  {
+   "k": 73,
+   "name": "H2",
+   "resname": "HOH",
+   "resseq": 562,
+   "element": "H",
+   "global_index": 7410
+  },
+  {
+   "k": 74,
+   "name": "HL",
+   "resname": "ATP",
+   "resseq": 456,
+   "element": "H",
+   "global_index": -1
+  },
+  {
+   "k": 75,
+   "name": "HL",
+   "resname": "ASP",
+   "resseq": 201,
+   "element": "H",
+   "global_index": -1
+  },
+  {
+   "k": 76,
+   "name": "HL",
+   "resname": "LYS",
+   "resseq": 165,
+   "element": "H",
+   "global_index": -1
+  },
+  {
+   "k": 77,
+   "name": "HL",
+   "resname": "THR",
+   "resseq": 224,
+   "element": "H",
+   "global_index": -1
+  }
+ ],
+ "fixed": [
+  37,
+  40,
+  46,
+  62,
+  74,
+  75,
+  76,
+  77
+ ],
+ "links": [
+  {
+   "qm": 7109,
+   "mm": 7110
+  },
+  {
+   "qm": 3209,
+   "mm": 3207
+  },
+  {
+   "qm": 2666,
+   "mm": 2664
+  },
+  {
+   "qm": 3544,
+   "mm": 3542
+  }
+ ],
+ "residues_qm": [
+  "GLC",
+  "ATP",
+  "ASP205",
+  "LYS169",
+  "THR228",
+  "MG"
+ ]
+}

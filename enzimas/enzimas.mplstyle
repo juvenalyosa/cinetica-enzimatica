@@ -1,0 +1,82 @@
+# Estilo compartido del curso "Cinética Enzimática" (enzimas.viz.apply_style()).
+# Nota: en los archivos .mplstyle el símbolo "#" inicia un comentario, por eso
+# los colores hexadecimales se escriben sin él (matplotlib lo añade).
+
+# --- Superficie y tinta ---------------------------------------------------
+figure.facecolor: fcfcfb
+figure.edgecolor: fcfcfb
+axes.facecolor: fcfcfb
+savefig.facecolor: fcfcfb
+savefig.edgecolor: fcfcfb
+text.color: 0b0b0b
+axes.labelcolor: 898781
+axes.titlecolor: 0b0b0b
+xtick.color: 898781
+ytick.color: 898781
+xtick.labelcolor: 52514e
+ytick.labelcolor: 52514e
+
+# --- Tipografía -----------------------------------------------------------
+font.family: sans-serif
+font.sans-serif: Helvetica Neue, Helvetica, Arial, Segoe UI, Roboto, DejaVu Sans
+font.size: 10.5
+axes.titlesize: 13
+axes.titleweight: semibold
+axes.titlelocation: left
+axes.titlepad: 12
+axes.labelsize: 10.5
+xtick.labelsize: 9.5
+ytick.labelsize: 9.5
+legend.fontsize: 9.5
+mathtext.fontset: dejavusans
+
+# --- Ejes, rejilla y bordes -----------------------------------------------
+axes.edgecolor: c3c2b7
+axes.linewidth: 0.8
+axes.spines.top: False
+axes.spines.right: False
+axes.spines.left: True
+axes.spines.bottom: True
+axes.grid: True
+axes.grid.axis: y
+grid.color: e1e0d9
+grid.linewidth: 0.8
+grid.linestyle: -
+grid.alpha: 1.0
+axes.axisbelow: True
+xtick.direction: out
+ytick.direction: out
+xtick.major.size: 3.5
+ytick.major.size: 3.5
+xtick.major.width: 0.8
+ytick.major.width: 0.8
+xtick.minor.visible: False
+ytick.minor.visible: False
+axes.xmargin: 0.03
+axes.ymargin: 0.06
+
+# --- Marcas ---------------------------------------------------------------
+lines.linewidth: 2.0
+lines.solid_capstyle: round
+lines.solid_joinstyle: round
+lines.markersize: 6.5
+lines.markeredgewidth: 1.2
+lines.markeredgecolor: fcfcfb
+patch.linewidth: 0
+axes.prop_cycle: cycler('color', ['2a78d6', 'eb6834', '1baf7a', 'eda100', 'e87ba4', '008300', '4a3aa7', 'e34948'])
+
+# --- Leyenda --------------------------------------------------------------
+legend.frameon: False
+legend.labelcolor: 52514e
+legend.handlelength: 1.6
+legend.handletextpad: 0.6
+legend.borderaxespad: 0.3
+legend.columnspacing: 1.2
+
+# --- Figura ---------------------------------------------------------------
+figure.figsize: 7.0, 4.2
+figure.dpi: 110
+savefig.dpi: 200
+savefig.bbox: tight
+savefig.pad_inches: 0.15
+figure.constrained_layout.use: False

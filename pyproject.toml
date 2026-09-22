@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "enzimas"
+version = "0.1.0"
+description = "Herramientas QM/MM (MOPAC PM7 + OpenMM) y de cinética enzimática para el curso abierto Cinética Enzimática (glucoquinasa humana)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Juvenal Yosa"}]
+keywords = ["enzyme-kinetics", "qmmm", "mopac", "openmm", "glucokinase", "education", "colab"]
+dependencies = [
+  "numpy>=1.24",
+  "scipy>=1.10",
+  "matplotlib>=3.7",
+  "pandas>=2.0",
+]
+
+[project.optional-dependencies]
+sim = ["openmm>=8.1", "py3Dmol>=2.0"]
+dev = ["pytest>=7", "nbformat", "nbconvert", "jupyter"]
+
+[tool.setuptools]
+packages = ["enzimas"]
+
+[tool.setuptools.package-data]
+enzimas = ["*.mplstyle"]

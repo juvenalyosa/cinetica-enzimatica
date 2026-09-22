@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+.DS_Store
+.venv/
+*.egg-info/
+build/
+dist/
+# corridas locales pesadas (los resultados curados van en data/precalculado)
+work/
+scratch/
