@@ -593,9 +593,10 @@ $$\Delta G^{\ddagger} = \Delta E^{\ddagger} + \Delta \mathrm{ZPE} + \Delta H_{\m
 * **−TΔS‡**: si el TS es más "rígido" que el reactivo (ΔS‡ < 0), este término **sube** la barrera.
 
 **2. ¿Y si la enzima estuviera en otra postura?** Como el entorno está fijo, cada instantánea
-de la MD da una barrera distinta. Repetimos el cálculo en varias instantáneas (250, 500, 750 y
-1000 ps) y miramos la **media y la dispersión**. Un buen resultado no es un número: es un
-número con su incertidumbre.
+de la MD puede dar una barrera distinta. Repetimos el cálculo en varias instantáneas (250, 500,
+750 y 1000 ps) para ver **si la barrera cambia y por qué**. Un buen resultado no es un número:
+es un número con su incertidumbre, y a veces la respuesta es que la reacción ni siquiera es
+posible desde algunas conformaciones.
 
 **3. ¿Y si el método se equivoca?** PM7 es semiempírico. Recalculamos las energías con otro
 hamiltoniano (PM6‑D3H4) en las mismas geometrías: si la barrera cambia poco, el resultado es
@@ -673,11 +674,11 @@ md(r"""
 kcal/mol se compensan en parte): ΔG‡ ≈ ΔE‡ + 0.6 kcal/mol. El promedio sobre instantáneas dice
 cuánto "respira" la barrera con la conformación de la enzima. Y el cambio de hamiltoniano es la
 sorpresa: PM6‑D3H4 da energías muy distintas en las mismas geometrías. Los métodos semiempíricos
-se parametrizan con conjuntos de moléculas concretos y el trío fosfato + Mg²⁺ + carboxilato es
-un caso difícil para ellos; PM7 se ajustó con muchos más compuestos de fósforo que PM6, y por eso
-lo usamos. La lección: **antes de creer una barrera, hay que saber para qué química fue
-calibrado el método** y, si es posible, comparar con un cálculo de más nivel (DFT) o con el
-experimento (sección 12).
+se parametrizan frente a conjuntos concretos de moléculas, y el trío fosfato + Mg²⁺ + carboxilato
+es un caso difícil para ellos (fósforo hipervalente, cargas altas, un catión divalente). La
+lección: **antes de creer una barrera, hay que saber para qué química fue calibrado el método**
+y, si es posible, comparar con un cálculo de más nivel (DFT) o con el experimento (sección 12);
+aquí PM7 resulta coherente con otro cálculo QM/MM publicado y con el experimento, y PM6‑D3H4 no.
 """)
 
 # ============================================================================ 11. agua

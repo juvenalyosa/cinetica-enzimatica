@@ -84,7 +84,9 @@ tests/       pytest
    desde el TS.
 5. `scripts/03d_termoquimica_y_metodo.py`: frecuencias del reactivo y del TS → ΔZPE, ΔH‡, ΔS‡,
    ΔG‡ (armónico); energías PM6‑D3H4 en las geometrías PM7. `scripts/03e_instantaneas_md.py`:
-   el mismo camino de reacción en instantáneas de la MD (250–1000 ps).
+   el mismo camino de reacción en instantáneas de la MD (250–1000 ps); en las cuatro, Asp205
+   queda a ~4.4 Å del O6–H y no se forma un producto estable, así que la barrera se informa
+   para la conformación cristalina minimizada.
 
 Resultados principales (PM7, entorno fijo): barrera electrónica en la enzima 19.1 kcal/mol con
 una sola frecuencia imaginaria (−149 cm⁻¹); ΔG‡ armónica 19.8 kcal/mol; sitio activo en agua
