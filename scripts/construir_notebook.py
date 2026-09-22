@@ -48,7 +48,7 @@ calcula con código que puedes leer y modificar.
 | 6 | Mirar la reacción con mecánica cuántica: QM/MM | MOPAC PM7 + Amber |
 | 7 | Reactivo, producto y el perfil de energía | escaneo relajado |
 | 8 | El estado de transición | NEB, método del dímero, frecuencias |
-| 9 | La misma reacción **sin** enzima | MOPAC: SADDLE (QST2), TS, FORCETS, IRC |
+| 9 | La misma reacción **fuera** de la enzima | MOPAC: SADDLE (QST2), TS, FORCETS, IRC |
 | 10 | De la barrera a *k*<sub>cat</sub> | ecuación de Eyring |
 | 11 | Michaelis–Menten desde el mecanismo | ecuaciones diferenciales, ajustes |
 | 12 | Cooperatividad: la glucoquinasa es un sensor | ecuación de Hill |
@@ -408,7 +408,10 @@ fig;
 ''')
 
 code(r'''
-ts = res["etapas"].get("dimero", {})
+ts = res["etapas"].get("dimero")
+if ts is None or not ts.get("convergido", True):
+    print("(el dímero no convergió: se usa la imagen trepadora del NEB como TS)")
+    ts = ts or {**res["etapas"]["neb"], "xi": neb.loc[res["etapas"]["neb"]["imagen_ts"], "xi"], "d_PG_O6": float("nan"), "d_PG_O3B": float("nan")}
 fr = res["etapas"].get("frecuencias", {})
 print("TS refinado (dímero): barrera = %.1f kcal/mol; ξ = %+.2f Å; d(Pγ–O6) = %.2f Å; d(Pγ–O3β) = %.2f Å"
       % (ts["barrera_kcal"], ts["xi"], ts["d_PG_O6"], ts["d_PG_O3B"]))
@@ -453,50 +456,58 @@ fig = viz.plot_energy_levels(niveles, ts_indices=[1], title="Diagrama de energí
 fig;
 ''')
 
-# ============================================================================ 9. vacío
+# ============================================================================ 9. agua
 md(r"""
-## 9. La misma reacción **sin** enzima
+## 9. La misma reacción **fuera** de la enzima
 
-**Simple.** ¿Qué pasa si quitamos la enzima y dejamos solo las moléculas que reaccionan? La
-colina debería ser mucho más alta: eso es, precisamente, la catálisis.
+**Simple.** ¿Cuánto de la catálisis lo hace el *resto* de la enzima? Para averiguarlo
+sacamos el sitio activo (el mismo clúster QM: glucosa, trifosfato, Mg²⁺, agua coordinada y
+las cadenas laterales de Asp205, Lys169 y Thr228, con sus anclajes fijos) y lo ponemos en
+**agua** (modelo de disolvente implícito COSMO), sin el campo eléctrico de los otros 2300
+átomos. Si la barrera cambia, ese cambio es obra del entorno proteico.
 
-**Más detalle.** Tomamos el mismo clúster QM (glucosa, trifosfato, Mg²⁺, agua y las tres
-cadenas laterales, con sus átomos ancla fijos) pero **sin el potencial de la enzima** y lo
-tratamos con los métodos nativos de MOPAC, tal como los orquesta la suite Leonardo:
+**Más detalle: los métodos nativos de MOPAC.** Fuera de la enzima no hay potencial externo
+que "congelar", así que aquí sí usamos los buscadores de estado de transición nativos de
+MOPAC, con los nombres con que los orquesta la suite Leonardo:
 
 | Nombre en Leonardo | Palabra clave MOPAC | Qué hace |
 |---|---|---|
-| QST2 | `SADDLE` | Busca el TS a partir de reactivo y producto |
-| QST3 / TS | `TS` | Refina el punto de silla (Hessiano, seguimiento del modo) |
-| Validación | `FORCETS` | Frecuencias: una imaginaria |
-| Camino | `IRC=1*` | Sigue el camino de reacción en ambas direcciones |
+| QST2 | `SADDLE` | Busca el TS a partir de reactivo y producto (dos extremos) |
+| QST3 / TS | `TS` | Refina el punto de silla siguiendo el modo de curvatura negativa |
+| Validación | `FORCETS` | Frecuencias sobre las coordenadas libres: debe haber una imaginaria |
+| Camino | `IRC=1*` | Sigue el camino intrínseco de reacción en ambas direcciones |
 
-En vacío estos métodos son rigurosos; dentro de la enzima usamos NEB/dímero porque el
-potencial de `mol.in` es constante por átomo y no "sigue" a los átomos cuando se mueven.
+Un detalle práctico que conviene aprender: `SADDLE` da una *estimación* del TS que a veces
+queda lejos; el refinamiento `TS` funciona mejor si parte de una buena geometría (aquí, la
+del punto de silla QM/MM de la sección 8).
 """)
 
 code(r'''
-vac = res["etapas"]["vacio"]
-print("Sin enzima (vacío): ΔE(reacción) = %+.1f kcal/mol; barrera SADDLE→TS = %.1f kcal/mol" % (vac["dE_reaccion"], vac["barrera_vacio_kcal"]))
-print("Frecuencias más bajas del TS en vacío (cm⁻¹):", np.round(vac["frecuencias_mas_bajas"], 1))
-print("Validación FORCETS:", "una frecuencia imaginaria ✔" if vac["validacion_ts"]["ok"] else vac["validacion_ts"])
+agua = res["etapas"]["agua"]
+if "barrera_saddle_qst2_kcal" in agua:
+    print("SADDLE (QST2): estimación del TS %.1f kcal/mol por encima del reactivo" % agua["barrera_saddle_qst2_kcal"])
+print("TS refinado (palabra clave TS): barrera = %.1f kcal/mol; ΔE(reacción) = %+.1f kcal/mol" % (agua["barrera_kcal"], agua["dE_reaccion"]))
+print("Frecuencias más bajas (cm⁻¹):", np.round(agua["frecuencias_mas_bajas"], 1))
+print("Validación FORCETS:", "una sola frecuencia imaginaria ✔" if agua["validacion_ts"]["ok"]
+      else f"{agua['validacion_ts']['imaginary_mode_count']} modos imaginarios: el punto de silla necesita más refinamiento")
 try:
-    irc = datos.csv("qmmm/vacio_irc.csv")
+    irc = datos.csv("qmmm/agua_irc.csv")
     fig = viz.plot_energy_profile(irc["xi"].values, irc["energia_kcal"].values, xlabel="ξ (Å)", smooth=False,
-                                  ts_index=int(irc["energia_rel_kcal"].idxmax()), title="IRC de MOPAC en vacío",
-                                  subtitle="Camino intrínseco de reacción desde el TS localizado con SADDLE + TS")
+                                  ts_index=int(irc["energia_rel_kcal"].idxmax()), title="IRC de MOPAC en agua (COSMO)",
+                                  subtitle="Camino intrínseco de reacción desde el TS localizado con TS + FORCETS")
     fig;
 except FileNotFoundError:
-    print("(el IRC en vacío no está disponible en estos datos)")
+    print("(el IRC no está disponible en estos datos)")
 ''')
 
 code(r'''
 con = [("E·S", 0.0), ("TS", ts["barrera_kcal"]), ("E·P", P["dE_reaccion_kcal"])]
-sin = [("R", 0.0), ("TS", vac["barrera_vacio_kcal"]), ("P", vac["dE_reaccion"])]
-fig = viz.plot_energy_levels(con, compare=sin, ts_indices=[1], title="Con enzima frente a sin enzima",
-                             subtitle="La enzima baja la colina: eso es la catálisis")
+sin = [("R", 0.0), ("TS", agua["barrera_kcal"]), ("P", agua["dE_reaccion"])]
+fig = viz.plot_energy_levels(con, compare=sin, ts_indices=[1], label="dentro de la enzima", compare_label="sitio activo en agua",
+                             title="Dentro de la enzima frente a fuera de ella",
+                             subtitle="La diferencia entre las dos colinas es el efecto del resto de la proteína")
 fig;
-print("Reducción de la barrera por la enzima: %.1f kcal/mol" % (vac["barrera_vacio_kcal"] - ts["barrera_kcal"]))
+print("Efecto del entorno proteico sobre la barrera: %+.1f kcal/mol" % (ts["barrera_kcal"] - agua["barrera_kcal"]))
 ''')
 
 # ============================================================================ 10. barrera -> kcat
@@ -516,12 +527,12 @@ conformaciones. Por eso comparamos órdenes de magnitud, no decimales.
 code(r'''
 T = 298.15
 k_qmmm = cin.eyring_rate(ts["barrera_kcal"], T)
-k_vac = cin.eyring_rate(vac["barrera_vacio_kcal"], T)
+k_agua = cin.eyring_rate(agua["barrera_kcal"], T)
 k_exp = ref["kcat_s"]["value"]
 print(f"Barrera QM/MM = {ts['barrera_kcal']:.1f} kcal/mol  →  k ≈ {k_qmmm:.2e} s⁻¹")
-print(f"Barrera en vacío = {vac['barrera_vacio_kcal']:.1f} kcal/mol  →  k ≈ {k_vac:.2e} s⁻¹")
+print(f"Barrera del sitio activo en agua = {agua['barrera_kcal']:.1f} kcal/mol  →  k ≈ {k_agua:.2e} s⁻¹")
 print(f"k_cat experimental ≈ {k_exp} s⁻¹  ↔  ΔG‡ ≈ {cin.barrier_from_rate(k_exp, T):.1f} kcal/mol")
-print(f"Aceleración estimada por la enzima (vacío → enzima): {cin.rate_enhancement(k_qmmm, k_vac):.1e} veces")
+print(f"Factor de aceleración atribuible al entorno proteico: {cin.rate_enhancement(k_qmmm, k_agua):.1e} veces")
 ''')
 
 # ============================================================================ 11. MM

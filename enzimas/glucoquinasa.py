@@ -250,7 +250,7 @@ class ModeloGlucoquinasa:
                                                          p[2], 0 if k in fixed else 1)
                 for k, (s, p) in enumerate(zip(self.symbols, xyz))]
 
-    def run(self, xyz, tag, keywords, product_xyz=None, fixed=None, embedding=True, timeout_s=7200):
+    def run(self, xyz, tag, keywords, product_xyz=None, fixed=None, embedding=True, timeout_s=7200, eps=None):
         """Ejecuta MOPAC PM7 sobre la región QM.  Devuelve energía (kcal/mol), coordenadas y datos AUX."""
         fixed = self.fixed if fixed is None else set(fixed)
         work = self.work / tag
@@ -261,6 +261,8 @@ class ModeloGlucoquinasa:
         mol_in += ["%s %.10f %.10f %.10f %.12f" % (s, p[0], p[1], p[2], v) for s, p, v in zip(self.symbols, xyz, phi)]
         (work / "mol.in").write_text("\n".join(mol_in) + "\n")
         emb = " QMMM" if embedding else ""
+        if eps is not None and not embedding:
+            emb += f" EPS={float(eps):.1f}"  # disolvente implícito COSMO
         header = f"PM7 {keywords}{emb} AUX(9) XYZ CHARGE={QM_FORMAL_CHARGE} SINGLET GEO-OK THREADS={self.threads}"
         lines = [header, f"Glucoquinasa 3FGU: {tag}", ""] + self._geometry_lines(xyz, fixed)
         if product_xyz is not None:
@@ -274,11 +276,13 @@ class ModeloGlucoquinasa:
         seconds = time.perf_counter() - t0
         out = (work / "job.out").read_text(errors="replace") if (work / "job.out").exists() else ""
         hof = re.findall(r"FINAL HEAT OF FORMATION\s*=\s*([-+0-9.DEd]+)\s*KCAL", out)
-        if cp.returncode or not hof:
+        if not hof:  # los trabajos FORCE/FORCETS imprimen la energía con otro rótulo
+            hof = re.findall(r"HEAT OF FORMATION\s*=\s*([-+0-9.DEd]+)\s*KCAL", out)
+        aux = parse_mopac_aux_text((work / "job.aux").read_text(errors="replace")) if (work / "job.aux").exists() else {}
+        if cp.returncode or (not hof and aux.get("heat_of_formation_ev") is None) or "JOB ENDED NORMALLY" not in out:
             (work / "console.log").write_text(cp.stdout + "\n" + cp.stderr)
             raise RuntimeError(f"MOPAC falló en {tag}:\n{out[-2500:]}\n{cp.stderr[-500:]}")
-        energy = float(hof[-1].replace("D", "E"))
-        aux = parse_mopac_aux_text((work / "job.aux").read_text(errors="replace")) if (work / "job.aux").exists() else {}
+        energy = float(hof[-1].replace("D", "E")) if hof else float(aux["heat_of_formation_ev"]) * 23.060548
         coords = aux.get("optimized_coords_ang")
         if coords is None or np.asarray(coords).shape != xyz.shape:
             coords = xyz.copy()
@@ -471,24 +475,24 @@ class ModeloGlucoquinasa:
                     xi=[self.reaction_coordinate(f)[0] for f in frames])
 
     # ------------------------------------------------------------------ MOPAC nativo (para el modelo en vacío)
-    def native_optimize(self, xyz, tag, embedding=False):
-        r = self.run(xyz, tag, "EF GNORM=0.5 CYCLES=3000 LET", embedding=embedding)
+    def native_optimize(self, xyz, tag, embedding=False, eps=None):
+        r = self.run(xyz, tag, "EF GNORM=0.5 CYCLES=3000 LET", embedding=embedding, eps=eps)
         _log(f"{tag}: E = {r['energy_kcal']:.2f} kcal/mol ({r['seconds']:.0f} s)")
         return r
 
-    def native_saddle(self, xyz_react, xyz_prod, tag, embedding=False):
+    def native_saddle(self, xyz_react, xyz_prod, tag, embedding=False, eps=None):
         """QST2 de Leonardo = SADDLE de MOPAC: busca el TS entre dos extremos."""
-        r = self.run(xyz_react, tag, "SADDLE CYCLES=500 LET", product_xyz=xyz_prod, embedding=embedding)
+        r = self.run(xyz_react, tag, "SADDLE CYCLES=500 LET", product_xyz=xyz_prod, embedding=embedding, eps=eps)
         _log(f"{tag}: E = {r['energy_kcal']:.2f} kcal/mol ({r['seconds']:.0f} s)")
         return r
 
-    def native_ts(self, xyz_guess, tag, embedding=False):
-        r = self.run(xyz_guess, tag, "TS GNORM=0.5 CYCLES=2000 LET RECALC=5", embedding=embedding)
+    def native_ts(self, xyz_guess, tag, embedding=False, eps=None):
+        r = self.run(xyz_guess, tag, "TS GNORM=0.5 CYCLES=2000 LET RECALC=5", embedding=embedding, eps=eps)
         _log(f"{tag}: E = {r['energy_kcal']:.2f} kcal/mol ({r['seconds']:.0f} s)")
         return r
 
-    def native_frequencies(self, xyz, tag, embedding=False):
-        r = self.run(xyz, tag, "FORCETS LET", embedding=embedding)
+    def native_frequencies(self, xyz, tag, embedding=False, eps=None):
+        r = self.run(xyz, tag, "FORCETS LET", embedding=embedding, eps=eps)
         signed = np.asarray(r["aux"].get("freq_cm_signed", []), dtype=float)
         r["freq_cm_signed"] = signed
         r["validation"] = mopac_validate_ts_frequencies(freq_cm_signed=signed, threshold_cm=10.0)
@@ -497,8 +501,8 @@ class ModeloGlucoquinasa:
         _log(f"{tag}: frecuencias más bajas {np.round(np.sort(signed)[:4], 1)} cm-1; imaginarias: {r['validation']['imaginary_mode_count']}")
         return r
 
-    def native_irc(self, xyz_ts, tag, embedding=False):
-        r = self.run(xyz_ts, tag, "IRC=1* X-PRIORITY=0.05 LET", embedding=embedding)
+    def native_irc(self, xyz_ts, tag, embedding=False, eps=None):
+        r = self.run(xyz_ts, tag, "IRC=1* X-PRIORITY=0.05 LET", embedding=embedding, eps=eps)
         xyz_file = Path(r["workdir"]) / "job.xyz"
         r["irc_frames"] = parse_mopac_xyz_trajectory(xyz_file.read_text(errors="replace"), expected_atoms=self.n_qm) if xyz_file.exists() else {}
         return r

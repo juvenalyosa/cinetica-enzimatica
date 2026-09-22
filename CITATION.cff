@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "Si usas este curso o su código, cita este repositorio."
+title: "Cinética enzimática, paso a paso, con simulaciones QM/MM (glucoquinasa humana)"
+authors:
+  - family-names: Yosa
+    given-names: Juvenal
+license: MIT
+repository-code: "https://github.com/juvenalyosa/cinetica-enzimatica"
+keywords:
+  - enzyme kinetics
+  - QM/MM
+  - MOPAC
+  - OpenMM
+  - glucokinase
+  - education

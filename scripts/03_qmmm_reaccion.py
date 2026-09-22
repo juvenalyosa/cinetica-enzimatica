@@ -9,8 +9,8 @@ Etapas (todas con ``enzimas.glucoquinasa.ModeloGlucoquinasa``):
   5. dímero      refinamiento del punto de silla (solo gradientes)
   6. frecuencias Hessiano numérico sobre los átomos libres: UNA frecuencia imaginaria
   7. descenso    camino de mínima energía descendente desde el TS hacia R y P
-  8. vacío       el mismo clúster QM sin el campo de la enzima, con MOPAC nativo:
-                 SADDLE (= QST2), TS, FORCETS, IRC  -> barrera "sin enzima"
+  8. agua        el mismo clúster QM fuera de la enzima (COSMO), con MOPAC nativo:
+                 SADDLE (= QST2), TS, FORCETS, IRC  -> barrera "sin el resto de la enzima"
 
 Productos en data/precalculado/qmmm/ (ligeros, para el notebook en modo rápido).
 Uso:  python scripts/03_qmmm_reaccion.py [--estructura PDB] [--rapido]
@@ -178,8 +178,12 @@ def main():
             paths = {}
             for name, sign in (("hacia_reactivo", -1), ("hacia_producto", +1)):
                 # el signo se decide por la coordenada xi tras el desplazamiento
-                test = ts_xyz + sign * 0.15 * mode / np.linalg.norm(mode)
                 paths[name] = m.descend(ts_xyz, mode, f"descenso_{name}", direction=sign, steps=150 if QUICK else 500)
+                # el descenso con FIRE se detiene en zonas planas: se remata con L-BFGS hasta el mínimo
+                fin = m.optimize(paths[name]["frames"][-1], f"descenso_{name}/minimo", fmax_kcal_a=0.5, steps=600)
+                paths[name]["frames"].append(fin["coords"])
+                paths[name]["energies_kcal"] = np.append(paths[name]["energies_kcal"], fin["energy_kcal"])
+                paths[name]["xi"].append(fin["xi"])
             # ordenar: el que termina con xi menor es el lado del reactivo
             a, b = paths["hacia_reactivo"], paths["hacia_producto"]
             if a["xi"][-1] > b["xi"][-1]:
@@ -194,50 +198,91 @@ def main():
                                                 E_extremo_reactivo_rel=float(energies[0] - R["energy_kcal"]),
                                                 E_extremo_producto_rel=float(energies[-1] - R["energy_kcal"]),
                                                 xi_extremos=[float(xis[0]), float(xis[-1])])
+            # Si el descenso encuentra un reactivo/producto más bajo que la optimización directa,
+            # se reoptimiza desde ahí y se toma el mínimo más bajo como referencia.
+            if energies[0] < R["energy_kcal"] - 0.05:
+                R2 = m.optimize(frames[0], "reactivo_desde_descenso", fmax_kcal_a=0.5, steps=600)
+                if R2["energy_kcal"] < R["energy_kcal"]:
+                    log("reactivo más bajo hallado por el descenso: %.2f -> %.2f kcal/mol" % (R["energy_kcal"], R2["energy_kcal"]))
+                    R = R2
+                    m.write_pdb(OUT / "reactivo.pdb", R["coords"])
+                    summary["etapas"]["reactivo"].update(energia_kcal=R["energy_kcal"], reoptimizado_desde_descenso=True,
+                                                         **m.reaction_coordinates(R["coords"]))
+            if energies[-1] < P["energy_kcal"] - 0.05:
+                P2 = m.optimize(frames[-1], "producto_desde_descenso", fmax_kcal_a=0.5, steps=600)
+                if P2["energy_kcal"] < P["energy_kcal"]:
+                    log("producto más bajo hallado por el descenso: %.2f -> %.2f kcal/mol" % (P["energy_kcal"], P2["energy_kcal"]))
+                    P = P2
+                    m.write_pdb(OUT / "producto.pdb", P["coords"])
+                    summary["etapas"]["producto"].update(energia_kcal=P["energy_kcal"], reoptimizado_desde_descenso=True,
+                                                         **m.reaction_coordinates(P["coords"]))
+            summary["etapas"]["producto"]["dE_reaccion_kcal"] = P["energy_kcal"] - R["energy_kcal"]
+            if "dimero" in summary["etapas"]:
+                summary["etapas"]["dimero"]["barrera_kcal"] = summary["etapas"]["dimero"]["energia_kcal"] - R["energy_kcal"]
+            if "neb" in summary["etapas"]:
+                summary["etapas"]["neb"]["barrera_kcal"] = float(neb["energies_kcal"][k_ts] - R["energy_kcal"])
+            summary["etapas"]["escaneo"]["barrera_aprox_kcal"] = float(df["energia_kcal"].max() - R["energy_kcal"])
+            # reescribir los CSV con la nueva referencia
+            df["energia_rel_kcal"] = df["energia_kcal"] - R["energy_kcal"]
+            df.to_csv(OUT / "escaneo.csv", index=False)
+            pd.DataFrame(dict(cuadro=range(len(frames)), xi=xis, energia_kcal=energies,
+                              energia_rel_kcal=np.array(energies) - R["energy_kcal"])).to_csv(OUT / "camino_descenso.csv", index=False)
+            if "neb" in summary["etapas"]:
+                pd.DataFrame(dict(imagen=range(len(images)), xi=neb["xi"], energia_kcal=neb["energies_kcal"],
+                                  energia_rel_kcal=neb["energies_kcal"] - R["energy_kcal"])).to_csv(OUT / "neb.csv", index=False)
         except Exception as exc:
             summary["errores"]["descenso"] = traceback.format_exc()
             log("descenso falló:", exc)
 
-    # 8. modelo en vacío: MOPAC nativo (SADDLE = QST2, TS, FORCETS, IRC)
+    # 8. el mismo clúster fuera de la enzima (agua implícita COSMO): MOPAC nativo
+    #    SADDLE (= QST2 de Leonardo) -> TS -> FORCETS -> IRC
     t0 = time.time()
-    vac = {}
+    EPS = 78.4
+    agua = dict(eps=EPS, metodo="PM7/COSMO, anclajes fijos, sin el campo de la enzima")
     try:
-        Rv = m.native_optimize(R["coords"], "vacio/reactivo")
-        Pv = m.native_optimize(P["coords"], "vacio/producto")
-        vac.update(E_reactivo=Rv["energy_kcal"], E_producto=Pv["energy_kcal"], dE_reaccion=Pv["energy_kcal"] - Rv["energy_kcal"])
-        m.write_pdb(OUT / "vacio_reactivo.pdb", Rv["coords"])
-        m.write_pdb(OUT / "vacio_producto.pdb", Pv["coords"])
-        Sv = m.native_saddle(Rv["coords"], Pv["coords"], "vacio/saddle_qst2")
-        vac["E_saddle"] = Sv["energy_kcal"]
-        Tv = m.native_ts(Sv["coords"], "vacio/ts")
-        vac["E_ts"] = Tv["energy_kcal"]
-        vac["barrera_vacio_kcal"] = Tv["energy_kcal"] - Rv["energy_kcal"]
-        m.write_pdb(OUT / "vacio_ts.pdb", Tv["coords"])
-        Fv = m.native_frequencies(Tv["coords"], "vacio/forcets")
-        vac["validacion_ts"] = Fv["validation"]
-        vac["frecuencias_mas_bajas"] = [float(v) for v in np.sort(Fv["freq_cm_signed"])[:6]]
-        if Fv["normal_modes_cart"] is not None:
-            np.savez_compressed(OUT / "vacio_frecuencias_ts.npz", freq_cm_signed=Fv["freq_cm_signed"],
-                                modos=Fv["normal_modes_cart"], ts_xyz=Tv["coords"], simbolos=np.array(m.symbols))
-        Iv = m.native_irc(Tv["coords"], "vacio/irc")
-        fr = Iv["irc_frames"]
-        if fr and fr.get("coords") is not None and len(fr.get("coords", [])) > 1:
-            coords = np.asarray(fr["coords"])
-            en = np.asarray(fr.get("energies_kcal", fr.get("energy_kcal", [np.nan] * len(coords))), dtype=float)
+        Ra = m.native_optimize(R["coords"], "agua/reactivo", eps=EPS)
+        Pa = m.native_optimize(P["coords"], "agua/producto", eps=EPS)
+        agua.update(E_reactivo=Ra["energy_kcal"], E_producto=Pa["energy_kcal"], dE_reaccion=Pa["energy_kcal"] - Ra["energy_kcal"])
+        m.write_pdb(OUT / "agua_reactivo.pdb", Ra["coords"])
+        m.write_pdb(OUT / "agua_producto.pdb", Pa["coords"])
+        try:
+            Sa = m.native_saddle(Ra["coords"], Pa["coords"], "agua/saddle_qst2", eps=EPS)
+            agua["E_saddle_qst2"] = Sa["energy_kcal"]
+            agua["barrera_saddle_qst2_kcal"] = Sa["energy_kcal"] - Ra["energy_kcal"]
+        except Exception as exc:
+            agua["saddle_error"] = str(exc)[:300]
+        # El refinamiento TS parte del punto de silla QM/MM (geometría más fiable que la de SADDLE)
+        Ta = m.native_ts(ts_xyz, "agua/ts", eps=EPS)
+        agua["E_ts"] = Ta["energy_kcal"]
+        agua["barrera_kcal"] = Ta["energy_kcal"] - Ra["energy_kcal"]
+        agua.update({f"ts_{k}": v for k, v in m.reaction_coordinates(Ta["coords"]).items()})
+        m.write_pdb(OUT / "agua_ts.pdb", Ta["coords"])
+        Fa = m.native_frequencies(Ta["coords"], "agua/forcets", eps=EPS)
+        agua["validacion_ts"] = Fa["validation"]
+        agua["frecuencias_mas_bajas"] = [float(v) for v in np.sort(Fa["freq_cm_signed"])[:6]]
+        if Fa["normal_modes_cart"] is not None:
+            np.savez_compressed(OUT / "agua_frecuencias_ts.npz", freq_cm_signed=Fa["freq_cm_signed"],
+                                modos=Fa["normal_modes_cart"], ts_xyz=Ta["coords"], simbolos=np.array(m.symbols))
+        Ia = m.native_irc(Ta["coords"], "agua/irc", eps=EPS)
+        fr = Ia["irc_frames"]
+        coords = np.asarray(fr.get("coords", [])) if isinstance(fr, dict) else np.zeros((0,))
+        if coords.ndim == 3 and len(coords) > 1:
+            en_key = next((k for k in ("energies_kcal", "energy_kcal", "energies", "heat_kcal") if k in fr), None)
+            en = np.asarray(fr[en_key], dtype=float) if en_key else np.full(len(coords), np.nan)
             xis = [m.reaction_coordinate(c)[0] for c in coords]
             pd.DataFrame(dict(cuadro=range(len(coords)), xi=xis, energia_kcal=en,
-                              energia_rel_kcal=en - Rv["energy_kcal"])).to_csv(OUT / "vacio_irc.csv", index=False)
-            save_frames(OUT / "vacio_irc.xyz", m, coords, en)
-            vac["irc_cuadros"] = int(len(coords))
+                              energia_rel_kcal=en - Ra["energy_kcal"])).to_csv(OUT / "agua_irc.csv", index=False)
+            save_frames(OUT / "agua_irc.xyz", m, coords, en)
+            agua["irc_cuadros"] = int(len(coords))
         else:
-            vac["irc_cuadros"] = 0
-            vac["irc_claves"] = list(fr.keys()) if isinstance(fr, dict) else str(type(fr))
-        log("vacío: barrera %.2f kcal/mol" % vac["barrera_vacio_kcal"])
+            agua["irc_cuadros"] = 0
+            agua["irc_claves"] = list(fr.keys()) if isinstance(fr, dict) else str(type(fr))
+        log("agua (COSMO): barrera TS = %.2f kcal/mol; dE = %.2f" % (agua["barrera_kcal"], agua["dE_reaccion"]))
     except Exception as exc:
-        summary["errores"]["vacio"] = traceback.format_exc()
-        log("modelo en vacío falló:", exc)
-    vac["segundos"] = time.time() - t0
-    summary["etapas"]["vacio"] = vac
+        summary["errores"]["agua"] = traceback.format_exc()
+        log("modelo en agua falló:", exc)
+    agua["segundos"] = time.time() - t0
+    summary["etapas"]["agua"] = agua
 
     summary["tiempo_total_s"] = time.time() - t_start
     summary["llamadas_mopac"] = m.n_calls
