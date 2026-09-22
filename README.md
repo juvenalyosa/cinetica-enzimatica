@@ -12,9 +12,16 @@ moleculares que el estudiante ejecuta celda a celda en Google Colab:
 * reacción química por QM/MM (MOPAC PM7 + campo de la enzima): perfil de energía,
   estado de transición, frecuencia imaginaria, camino de reacción,
 * de la barrera de energía a *k*<sub>cat</sub> (teoría del estado de transición, Eyring),
-* Michaelis–Menten, linealizaciones, inhibición, cooperatividad (Hill), temperatura y pH.
+  con termoquímica, promedio sobre conformaciones y sensibilidad al método,
+* Michaelis–Menten derivada desde el mecanismo, linealizaciones, inhibición (K<sub>i</sub> por
+  ajuste global, gráfico secundario, Dixon y Cheng–Prusoff), cooperatividad (Hill), mutantes
+  GCK‑MODY, activadores, temperatura y pH,
+* los valores experimentales de la glucoquinasa humana tomados de la literatura primaria, con
+  sus fuentes (`enzimas.kinetics.glucokinase_reference`).
 
-Cada sección empieza con una explicación muy simple y sube de nivel poco a poco.
+Cada sección empieza con una analogía, sigue con la ecuación explicando cada término, muestra
+qué pasa si un término sube o baja con **gráficas interactivas** (deslizadores, `enzimas.interactivo`)
+y termina con los datos reales. Pensado para estudiantes de pregrado.
 
 ## Cómo usarlo
 
@@ -42,7 +49,9 @@ para regenerar la preparación del sistema, AmberTools (antechamber, tleap).
 ```
 notebooks/   Cinetica_Enzimatica_Glucoquinasa.ipynb   el curso, celda a celda
 enzimas/     paquete Python
-   kinetics.py      leyes de velocidad, ajustes, simulación del mecanismo, Eyring
+   kinetics.py      leyes de velocidad, ajustes, simulación del mecanismo, Eyring, Dixon,
+                    Cheng-Prusoff y valores de referencia de la glucoquinasa con fuentes
+   interactivo.py   exploradores interactivos con deslizadores (ipywidgets)
    viz.py           gráficos y visores 3D con un estilo único
    glucoquinasa.py  modelo QM/MM de la reacción (PM7 + Amber, NEB, dímero, frecuencias)
    qmmm_mopac.py    interfaz MOPAC (SADDLE = QST2, TS, FORCETS, IRC), de la suite Leonardo
@@ -50,7 +59,9 @@ enzimas/     paquete Python
    cluster.py       modelos de clúster con átomos de enlace, de la suite Leonardo
    datos.py         acceso a los datos precalculados
    colab_setup.py   instalación en Colab
-scripts/     01_preparar_sistema.py, 02_dinamica_molecular.py, 03_qmmm_reaccion.py
+scripts/     01_preparar_sistema.py, 02_dinamica_molecular.py, 03_qmmm_reaccion.py,
+             03b/03c (sitio activo en agua), 03d (termoquímica y método), 03e (instantáneas de MD),
+             construir_notebook.py (genera el notebook)
 data/        raw/ (PDB) y precalculado/ (sistema, MD, QM/MM)
 tests/       pytest
 ```
@@ -71,10 +82,15 @@ tests/       pytest
    refinamiento con el método del dímero y la palabra clave `TS`, `FORCETS` y frecuencias
    numéricas; el `IRC` de MOPAC abortó en esa superficie y el camino se obtuvo por descenso
    desde el TS.
+5. `scripts/03d_termoquimica_y_metodo.py`: frecuencias del reactivo y del TS → ΔZPE, ΔH‡, ΔS‡,
+   ΔG‡ (armónico); energías PM6‑D3H4 en las geometrías PM7. `scripts/03e_instantaneas_md.py`:
+   el mismo camino de reacción en instantáneas de la MD (250–1000 ps).
 
-Resultados principales (PM7, entorno fijo, energías electrónicas): barrera en la enzima
-19.1 kcal/mol con una sola frecuencia imaginaria (−149 cm⁻¹); sitio activo en agua
-21.6 kcal/mol; ΔE de reacción +13.7 kcal/mol; distancia Pγ–O6 media en la MD 3.44 Å.
+Resultados principales (PM7, entorno fijo): barrera electrónica en la enzima 19.1 kcal/mol con
+una sola frecuencia imaginaria (−149 cm⁻¹); ΔG‡ armónica 19.8 kcal/mol; sitio activo en agua
+21.6 kcal/mol; ΔE de reacción +13.7 kcal/mol; distancia Pγ–O6 media en la MD 3.44 Å. Para
+comparar: la barrera QM/MM publicada por Zhang et al. (2009) es 18.3 kcal/mol y la que implica
+k<sub>cat</sub> ≈ 62–66 s⁻¹ es ≈ 15 kcal/mol.
 
 Las barreras PM7 son **semicuantitativas**: el objetivo es entender los conceptos, no
 reproducir el valor experimental con precisión química.

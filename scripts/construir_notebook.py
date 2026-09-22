@@ -627,17 +627,38 @@ try:
     display(df_inst.round(2))
     ok = df_inst.dropna(subset=["ΔE‡ (kcal/mol)"])
     media, sd = ok["ΔE‡ (kcal/mol)"].mean(), ok["ΔE‡ (kcal/mol)"].std(ddof=1) if len(ok) > 1 else 0.0
-    print(f"Barrera media = {media:.1f} ± {sd:.1f} kcal/mol (n = {len(ok)})")
-    fig, ax = viz.figure(6.5, 3.8)
-    ax.bar(range(len(ok)), ok["ΔE‡ (kcal/mol)"], color=viz.COLORS["ts"], width=0.55)
-    ax.axhline(media, color=viz.INK, lw=1, ls="--")
-    ax.annotate(f"media {media:.1f}", (len(ok) - 0.5, media), xytext=(0, 4), textcoords="offset points", ha="right", fontsize=9, color=viz.INK_SECONDARY)
-    ax.set_xticks(range(len(ok))); ax.set_xticklabels(ok["instantánea"], rotation=15)
-    ax.set_ylabel("ΔE‡ (kcal/mol)"); ax.set_title("La barrera depende de la conformación de la enzima", loc="left")
-    fig;
+    if len(ok) > 1:
+        print(f"Barrera media = {media:.1f} ± {sd:.1f} kcal/mol (n = {len(ok)})")
+        fig, ax = viz.figure(6.5, 3.8)
+        ax.bar(range(len(ok)), ok["ΔE‡ (kcal/mol)"], color=viz.COLORS["ts"], width=0.55)
+        ax.axhline(media, color=viz.INK, lw=1, ls="--")
+        ax.set_xticks(range(len(ok))); ax.set_xticklabels(ok["instantánea"], rotation=15)
+        ax.set_ylabel("ΔE‡ (kcal/mol)"); ax.set_title("La barrera depende de la conformación de la enzima", loc="left")
+        fig;
+    else:
+        print(f"Solo {len(ok)} conformación con camino completo (barrera {media:.1f} kcal/mol): las demás no llegan a un producto estable (ver abajo).")
+    sin_prod = [r for r in inst["instantaneas"] if r.get("sin_producto_estable")]
+    if sin_prod:
+        print("Instantáneas sin producto estable (la energía sube hasta ξ = 2 Å sin máximo):")
+        for r in sin_prod:
+            print(f"  {r['instantanea']}: E(ξ = {r['xi_max']:.1f}) = {r['escaneo_max_rel_kcal']:.0f} kcal/mol sobre R; d(Asp205 OD1···H–O6) en el reactivo = {r['d_OD1_H_reactivo']:.2f} Å")
 except FileNotFoundError:
     print("(promedio sobre instantáneas no disponible en estos datos)")
 ''')
+
+md(r"""
+**Lo que enseñan las instantáneas de la MD.** En la conformación cristalina minimizada, el
+hidroxilo O6–H de la glucosa está unido por puente de hidrógeno a Asp205 (1.7 Å) y el camino
+tiene un producto estable. En varias instantáneas de la dinámica clásica, en cambio, Asp205 se
+ha alejado del O6–H (en la MD la distancia O6···OD1 promedia 4.3 Å, sección 5): al forzar la
+transferencia del fosforilo el protón **no encuentra a la base** y la energía sube sin parar,
+sin mínimo de producto. Dos lecciones: (1) la reacción solo puede ocurrir desde las
+**conformaciones de ataque cercano** correctas, que son una fracción del tiempo; (2) el campo de
+fuerza clásico no siempre mantiene la geometría catalítica (aquí, la interacción
+hidroxilo–carboxilato junto al Mg²⁺), y por eso el modelador debe comparar la MD con el cristal
+antes de elegir la estructura de partida del QM/MM. Una barrera "promedio" solo tiene sentido
+sobre conformaciones reactivas.
+""")
 
 code(r'''
 met = res["etapas"].get("metodos", {})
@@ -760,7 +781,8 @@ dG_qmmm = termo.get(T_ref, {}).get("dG_kcal", ts["barrera_kcal"])
 filas = [("ΔE‡ PM7, una conformación (este cuaderno)", ts["barrera_kcal"]),
          ("ΔG‡ PM7 + termoquímica armónica (este cuaderno)", dG_qmmm)]
 try:
-    filas.append(("ΔE‡ promedio sobre instantáneas de MD (este cuaderno)", media))
+    if len(ok) > 1:
+        filas.append(("ΔE‡ promedio sobre instantáneas de MD (este cuaderno)", media))
 except NameError:
     pass
 filas.append(("ΔE‡ QM/MM publicada, Zhang et al. 2009", valor("qmmm_barrier_literature_kcal", np.nan)))

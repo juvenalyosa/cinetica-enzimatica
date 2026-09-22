@@ -12,12 +12,58 @@
   {
    "instantanea": "MD 250 ps",
    "t_ps": 250,
-   "error": "Traceback (most recent call last):\n  File \"/Users/juvenalyosa/enzimas/scripts/03e_instantaneas_md.py\", line 78, in main\n    raise RuntimeError(\"el escaneo no muestra un máximo interior (la energía sube hasta xi = 2.0)\")\nRuntimeError: el escaneo no muestra un máximo interior (la energía sube hasta xi = 2.0)\n"
+   "barrera_kcal": NaN,
+   "sin_producto_estable": true,
+   "escaneo_max_rel_kcal": 35.91455766418676,
+   "xi_max": 1.9315256029799297,
+   "d_OD1_H_reactivo": 4.505907182180438,
+   "n_qm": 81,
+   "e_mm_min_kcal": -225373.9129097868,
+   "segundos": 202.6593770980835,
+   "nota": "La energía sube monótonamente hasta xi = 2.0: en esta conformación no hay un mínimo de producto (el protón de O6 no encuentra a Asp205 cerca)."
   },
   {
    "instantanea": "MD 500 ps",
    "t_ps": 500,
-   "error": "Traceback (most recent call last):\n  File \"/Users/juvenalyosa/enzimas/scripts/03e_instantaneas_md.py\", line 78, in main\n    raise RuntimeError(\"el escaneo no muestra un máximo interior (la energía sube hasta xi = 2.0)\")\nRuntimeError: el escaneo no muestra un máximo interior (la energía sube hasta xi = 2.0)\n"
+   "barrera_kcal": NaN,
+   "sin_producto_estable": true,
+   "escaneo_max_rel_kcal": 21.174216404512208,
+   "xi_max": 1.9463587260364943,
+   "d_OD1_H_reactivo": 4.389198993769392,
+   "n_qm": 81,
+   "e_mm_min_kcal": -225373.61887104902,
+   "segundos": 218.70045113563538,
+   "nota": "La energía sube monótonamente hasta xi = 2.0: en esta conformación no hay un mínimo de producto (el protón de O6 no encuentra a Asp205 cerca)."
+  },
+  {
+   "instantanea": "MD 750 ps",
+   "t_ps": 750,
+   "barrera_kcal": NaN,
+   "sin_producto_estable": true,
+   "escaneo_max_rel_kcal": 40.09026798413902,
+   "xi_max": 1.9462935930920573,
+   "d_OD1_H_reactivo": 4.349895276282246,
+   "n_qm": 81,
+   "e_mm_min_kcal": -225419.8758214458,
+   "segundos": 203.30103993415833,
+   "nota": "La energía sube monótonamente hasta xi = 2.0: en esta conformación no hay un mínimo de producto (el protón de O6 no encuentra a Asp205 cerca)."
+  },
+  {
+   "instantanea": "MD 1000 ps",
+   "t_ps": 1000,
+   "barrera_kcal": NaN,
+   "sin_producto_estable": true,
+   "escaneo_max_rel_kcal": 39.67565534975074,
+   "xi_max": 1.9207724341160288,
+   "d_OD1_H_reactivo": 4.413918681309816,
+   "n_qm": 81,
+   "e_mm_min_kcal": -225231.46456044234,
+   "segundos": 231.16481733322144,
+   "nota": "La energía sube monótonamente hasta xi = 2.0: en esta conformación no hay un mínimo de producto (el protón de O6 no encuentra a Asp205 cerca)."
   }
- ]
+ ],
+ "barrera_media_kcal": 19.12936915629257,
+ "barrera_sd_kcal": 0.0,
+ "n": 1,
+ "nota": "Cada instantánea: minimización MM completa + camino QM/MM (PM7, entorno fijo)."
 }
