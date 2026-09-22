@@ -81,6 +81,7 @@ class ModeloGlucoquinasa:
         self.mopac = str(mopac_exe)
         self.threads = int(threads)
         self.precise = bool(precise)
+        self.method = "PM7"  # hamiltoniano semiempírico de MOPAC (PM7, PM6-D3H4, ...)
         top = AmberPrmtopFile(str(prmtop))
         system = top.createSystem()
         nb = next(f for f in system.getForces() if isinstance(f, NonbondedForce))
@@ -263,7 +264,7 @@ class ModeloGlucoquinasa:
         emb = " QMMM" if embedding else ""
         if eps is not None and not embedding:
             emb += f" EPS={float(eps):.1f}"  # disolvente implícito COSMO
-        header = f"PM7 {keywords}{emb} AUX(9) XYZ CHARGE={QM_FORMAL_CHARGE} SINGLET GEO-OK THREADS={self.threads}"
+        header = f"{getattr(self, 'method', 'PM7')} {keywords}{emb} AUX(9) XYZ CHARGE={QM_FORMAL_CHARGE} SINGLET GEO-OK THREADS={self.threads}"
         lines = [header, f"Glucoquinasa 3FGU: {tag}", ""] + self._geometry_lines(xyz, fixed)
         if product_xyz is not None:
             lines += [""] + self._geometry_lines(np.asarray(product_xyz, dtype=float), fixed)
@@ -447,6 +448,28 @@ class ModeloGlucoquinasa:
         order = np.argsort(signed)
         _log(f"{tag}: frecuencias más bajas {np.round(signed[order][:4], 1)} cm-1; modos imaginarios: {validation['imaginary_mode_count']}")
         return dict(freq_cm_signed=signed, modes=np.asarray(modes), validation=validation, indices=indices)
+
+    @staticmethod
+    def harmonic_thermo(freq_cm_signed, temperature_k=298.15, min_cm=50.0):
+        """Termoquímica armónica (ASE) a partir de frecuencias en cm-1.
+
+        Se ignoran los modos imaginarios (el modo de reacción del TS) y los modos por debajo de
+        ``min_cm`` se elevan a ``min_cm`` (corrección cuasi-armónica: los modos muy blandos
+        dominan la entropía y son poco fiables).  Devuelve ZPE, H_vib, S_vib y G_vib en kcal/mol
+        (S en cal/mol/K) para el subconjunto de átomos libres.
+        """
+        from ase.thermochemistry import HarmonicThermo
+        from ase.units import invcm
+
+        freqs = np.asarray(freq_cm_signed, dtype=float)
+        real = np.clip(freqs[freqs > 0.0], min_cm, None)
+        thermo = HarmonicThermo(vib_energies=real * invcm)  # eV
+        zpe = thermo.get_ZPE_correction() * EV_TO_KCAL
+        h = thermo.get_internal_energy(temperature_k, verbose=False) * EV_TO_KCAL
+        s = thermo.get_entropy(temperature_k, verbose=False) * EV_TO_KCAL * 1000.0
+        g = thermo.get_helmholtz_energy(temperature_k, verbose=False) * EV_TO_KCAL
+        return dict(zpe_kcal=float(zpe), h_vib_kcal=float(h), s_vib_cal=float(s), g_vib_kcal=float(g),
+                    n_modes=int(real.size), n_imag=int((freqs < 0).sum()), temperature_k=float(temperature_k))
 
     def descend(self, xyz_ts, mode, tag, direction=+1, displacement_a=0.15, fmax_kcal_a=0.5, steps=400, every=5,
                 embedding=True, eps=None):

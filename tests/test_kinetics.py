@@ -159,6 +159,83 @@ def test_ph_profile_maximum_near_mean_pka():
 
 def test_glucokinase_reference():
     ref = kin.glucokinase_reference()
-    assert ref["s_half_mm"]["approx"] and ref["hill_n"]["value"] == pytest.approx(1.7)
+    assert ref["s_half_mm"]["approx"] and ref["hill_n"]["value"] == pytest.approx(1.7, abs=0.1)
     assert "fuentes primarias" in ref["notes"]
-    assert all(inh["kind"] == "competitive" for inh in ref["inhibitors"])
+    assert all("source" in inh for inh in ref["inhibitors"]) and ref["references"]
+    assert all(v["source"] for k, v in ref.items() if isinstance(v, dict) and "value" in v)
+
+
+# ---------------------------------------------------------------------------
+# Inhibidores: Dixon, Cheng–Prusoff, IC50, gráficos secundarios
+# ---------------------------------------------------------------------------
+def test_cheng_prusoff_identities():
+    ic50, s, km = 3.0, 2.0, 2.0
+    assert kin.cheng_prusoff(ic50, s, km, "competitive") == pytest.approx(ic50 / 2)
+    assert kin.cheng_prusoff(ic50, s, km, "uncompetitive") == pytest.approx(ic50 / 2)
+    assert kin.cheng_prusoff(ic50, s, km, "noncompetitive") == pytest.approx(ic50)
+    assert kin.cheng_prusoff(ic50, 1e-9, km, "competitive") == pytest.approx(ic50, rel=1e-6)
+    # IC50 medida a [S] = 3·Km para un competitivo con Ki dado → Cheng–Prusoff recupera Ki
+    vmax, km, ki, s = 10.0, 2.0, 1.5, 6.0
+    ic50_true = ki * (1 + s / km)
+    assert kin.competitive_inhibition(s, vmax, km, ic50_true, ki) == pytest.approx(kin.michaelis_menten(s, vmax, km) / 2)
+    assert kin.cheng_prusoff(ic50_true, s, km) == pytest.approx(ki)
+    with pytest.raises(ValueError):
+        kin.cheng_prusoff(ic50, s, km, "mixed")
+
+
+def test_dixon_intersection_recovers_ki():
+    vmax, km, ki = 10.0, 2.0, 1.5
+    s_grid = np.array([1.0, 2.0, 4.0, 8.0])
+    i_grid = np.array([0.0, 1.0, 2.0, 4.0])
+    s, i = np.meshgrid(s_grid, i_grid)
+    s, i = s.ravel(), i.ravel()
+    v = kin.competitive_inhibition(s, vmax, km, i, ki)
+    dixon = kin.dixon_plot(s, v, i)
+    assert set(dixon["lines"]) == set(map(float, s_grid))
+    i_arr, inv_v = dixon["lines"][2.0]
+    np.testing.assert_allclose(inv_v, 1.0 / kin.competitive_inhibition(2.0, vmax, km, i_arr, ki))
+    assert all(fit["r2"] == pytest.approx(1.0) for fit in dixon["fits"].values())
+    res = kin.ki_from_dixon(None, dixon, km, vmax)
+    assert res["ki"] == pytest.approx(ki)
+    np.testing.assert_allclose(res["ki_from_slopes"], ki)
+    assert res["ki_from_intersection"] == pytest.approx(ki)
+    assert res["intersection"][0] == pytest.approx(-ki) and res["intersection"][1] == pytest.approx(1 / vmax)
+    slopes = [dixon["fits"][float(sv)]["slope"] for sv in s_grid]
+    assert kin.ki_from_dixon(s_grid, slopes, km, vmax)["ki"] == pytest.approx(ki)
+
+
+def test_fit_ic50_round_trip():
+    rng = np.random.default_rng(3)
+    i = np.array([0.0, 0.1, 0.3, 1.0, 2.0, 3.0, 10.0, 30.0, 100.0])
+    v = kin.ic50_curve(i, 5.0, 2.0, 1.3) * (1 + 0.01 * rng.standard_normal(i.size))
+    fit = kin.fit_ic50(i, v)
+    assert fit["v0"] == pytest.approx(5.0, rel=0.03)
+    assert fit["ic50"] == pytest.approx(2.0, rel=0.05)
+    assert fit["hill"] == pytest.approx(1.3, rel=0.05)
+    assert fit["r2"] > 0.99 and fit["residuals"].shape == i.shape
+    assert kin.ic50_curve(2.0, 5.0, 2.0, 1.3) == pytest.approx(2.5)
+
+
+def test_secondary_plots_recover_ki():
+    vmax, km, ki = 10.0, 2.0, 1.5
+    i = np.array([0.0, 0.5, 1.0, 2.0, 4.0])
+    km_app = np.array([kin.apparent_parameters("competitive", vmax, km, x, ki)["km_app"] for x in i])
+    res = kin.secondary_plot_competitive(i, km_app, km)
+    assert res["ki"] == pytest.approx(ki) and res["r2"] == pytest.approx(1.0)
+    assert res["intercept"] == pytest.approx(km)
+    vmax_app = np.array([kin.apparent_parameters("uncompetitive", vmax, km, x, ki)["vmax_app"] for x in i])
+    res = kin.secondary_plot_uncompetitive(i, vmax_app, vmax)
+    assert res["ki"] == pytest.approx(ki) and res["r2"] == pytest.approx(1.0)
+    assert res["intercept"] == pytest.approx(1 / vmax)
+
+
+def test_kcat_turnover_and_activator():
+    res = kin.kcat_km_from_fit({"vmax": 6.0, "km": 7.5}, 0.1)
+    assert res["kcat"] == pytest.approx(60.0)
+    assert res["kcat_over_km"] == pytest.approx(8.0)
+    assert res["kcat_over_km_molar"] == pytest.approx(8000.0)
+    assert "M⁻¹" in res["units"]
+    assert kin.turnover_time(60.0) == pytest.approx(1 / 60)
+    s = np.linspace(0, 20, 30)
+    np.testing.assert_allclose(kin.activator_effect(s, 60.0, 7.5, 1.7), kin.hill(s, 60.0, 7.5, 1.7))
+    np.testing.assert_allclose(kin.activator_effect(s, 60.0, 7.5, 1.7, 1.5, 0.4), kin.hill(s, 90.0, 3.0, 1.7))

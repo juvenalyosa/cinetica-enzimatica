@@ -26,7 +26,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parents[1]
 MOPAC_VERSION = "23.2.5"
 MOPAC_URL = f"https://github.com/openmopac/mopac/releases/download/v{MOPAC_VERSION}/mopac-{MOPAC_VERSION}-linux.tar.gz"
-PAQUETES_RAPIDO = ["numpy", "scipy", "pandas", "matplotlib", "py3Dmol"]
+PAQUETES_RAPIDO = ["numpy", "scipy", "pandas", "matplotlib", "py3Dmol", "ipywidgets"]
 PAQUETES_COMPLETO = PAQUETES_RAPIDO + ["openmm", "ase", "mdtraj"]
 
 

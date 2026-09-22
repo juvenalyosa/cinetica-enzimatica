@@ -1,0 +1,23 @@
+{
+ "instantaneas": [
+  {
+   "instantanea": "cristal minimizado",
+   "t_ps": 0,
+   "barrera_kcal": 19.12936915629257,
+   "dE_reaccion_kcal": 13.71498362823786,
+   "ts_d_PG_O6": 2.1008316067615556,
+   "ts_d_PG_O3B": 2.224731317522654,
+   "frecuencia_imaginaria_cm": -149.4663860306302
+  },
+  {
+   "instantanea": "MD 250 ps",
+   "t_ps": 250,
+   "error": "Traceback (most recent call last):\n  File \"/Users/juvenalyosa/enzimas/scripts/03e_instantaneas_md.py\", line 78, in main\n    raise RuntimeError(\"el escaneo no muestra un máximo interior (la energía sube hasta xi = 2.0)\")\nRuntimeError: el escaneo no muestra un máximo interior (la energía sube hasta xi = 2.0)\n"
+  },
+  {
+   "instantanea": "MD 500 ps",
+   "t_ps": 500,
+   "error": "Traceback (most recent call last):\n  File \"/Users/juvenalyosa/enzimas/scripts/03e_instantaneas_md.py\", line 78, in main\n    raise RuntimeError(\"el escaneo no muestra un máximo interior (la energía sube hasta xi = 2.0)\")\nRuntimeError: el escaneo no muestra un máximo interior (la energía sube hasta xi = 2.0)\n"
+  }
+ ]
+}

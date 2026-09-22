@@ -902,6 +902,111 @@
    "irc_nota": "IRC=1* de MOPAC abortó (fallo interno de MOPAC 23.2.3 con COSMO) tras 47 puntos sin avanzar en xi; el camino se obtuvo por descenso desde el TS (ASE).",
    "E_producto_optimizacion_directa": -1517.64464,
    "nota_referencias": "Reactivo y producto en agua tomados de los mínimos alcanzados por el descenso desde el TS (más bajos que las optimizaciones directas)."
+  },
+  "termoquimica": {
+   "298.15": {
+    "dE_kcal": 19.12936915629257,
+    "dZPE_kcal": -0.2445019554311898,
+    "dH_vib_kcal": -0.6746301899693208,
+    "dS_vib_cal": -4.3434388291687185,
+    "dH_kcal": 18.454738966323248,
+    "dG_kcal": 19.74973525323992,
+    "reactivo": {
+     "zpe_kcal": 320.57963108182287,
+     "h_vib_kcal": 345.5499579887741,
+     "s_vib_cal": 153.90080782674517,
+     "g_vib_kcal": 299.66443213523,
+     "n_modes": 210,
+     "n_imag": 0,
+     "temperature_k": 298.15
+    },
+    "ts": {
+     "zpe_kcal": 320.3351291263917,
+     "h_vib_kcal": 344.8753277988048,
+     "s_vib_cal": 149.55736899757645,
+     "g_vib_kcal": 300.28479823217737,
+     "n_modes": 209,
+     "n_imag": 1,
+     "temperature_k": 298.15
+    }
+   },
+   "303.15": {
+    "dE_kcal": 19.12936915629257,
+    "dZPE_kcal": -0.2445019554311898,
+    "dH_vib_kcal": -0.684527346099344,
+    "dS_vib_cal": -4.376358337938598,
+    "dH_kcal": 18.444841810193225,
+    "dG_kcal": 19.771534840339314,
+    "reactivo": {
+     "zpe_kcal": 320.57963108182287,
+     "h_vib_kcal": 346.34519296664587,
+     "s_vib_cal": 156.54587227579137,
+     "g_vib_kcal": 298.88831178623974,
+     "n_modes": 210,
+     "n_imag": 0,
+     "temperature_k": 303.15
+    },
+    "ts": {
+     "zpe_kcal": 320.3351291263917,
+     "h_vib_kcal": 345.6606656205465,
+     "s_vib_cal": 152.16951393785277,
+     "g_vib_kcal": 299.5304774702865,
+     "n_modes": 209,
+     "n_imag": 1,
+     "temperature_k": 303.15
+    }
+   },
+   "310.15": {
+    "dE_kcal": 19.12936915629257,
+    "dZPE_kcal": -0.2445019554311898,
+    "dH_vib_kcal": -0.6985420991401838,
+    "dS_vib_cal": -4.4220619627778035,
+    "dH_kcal": 18.430827057152385,
+    "dG_kcal": 19.802329574907958,
+    "reactivo": {
+     "zpe_kcal": 320.57963108182287,
+     "h_vib_kcal": 347.4762671395438,
+     "s_vib_cal": 160.23439015674742,
+     "g_vib_kcal": 297.7795710324285,
+     "n_modes": 210,
+     "n_imag": 0,
+     "temperature_k": 310.15
+    },
+    "ts": {
+     "zpe_kcal": 320.3351291263917,
+     "h_vib_kcal": 346.7777250404036,
+     "s_vib_cal": 155.81232819396962,
+     "g_vib_kcal": 298.4525314510439,
+     "n_modes": 209,
+     "n_imag": 1,
+     "temperature_k": 310.15
+    }
+   },
+   "nota": "Aproximación armónica sobre los 70 átomos libres de la región QM con el entorno fijo; modos < 50 cm-1 elevados a 50 cm-1; sin contribuciones del entorno ni de la conformación de la proteína.",
+   "reactivo_n_imag": 0,
+   "reactivo_frecuencias_mas_bajas": [
+    32.526092455523106,
+    53.48044505545972,
+    63.37065247813798,
+    80.24492224876204
+   ]
+  },
+  "metodos": {
+   "PM7": {
+    "barrera_kcal": 19.12794834600072,
+    "dE_reaccion_kcal": 13.710436881250644,
+    "E_R": -1647.1738485076671,
+    "E_TS": -1628.0459001616664,
+    "E_P": -1633.4634116264165
+   },
+   "PM6-D3H4": {
+    "barrera_kcal": 4.541888346000633,
+    "dE_reaccion_kcal": 31.32771688125058,
+    "E_R": -1589.811008507667,
+    "E_TS": -1585.2691201616665,
+    "E_P": -1558.4832916264165
+   },
+   "nota": "Energías de punto único en las geometrías PM7 (R, TS, P), mismo campo MM y mismo término LJ."
   }
  },
  "errores": {},
