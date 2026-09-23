@@ -19,9 +19,18 @@ moleculares que el estudiante ejecuta celda a celda en Google Colab:
 * los valores experimentales de la glucoquinasa humana tomados de la literatura primaria, con
   sus fuentes (`enzimas.kinetics.glucokinase_reference`).
 
-Cada sección empieza con una analogía, sigue con la ecuación explicando cada término, muestra
-qué pasa si un término sube o baja con **gráficas interactivas** (deslizadores, `enzimas.interactivo`)
-y termina con los datos reales. Pensado para estudiantes de pregrado.
+Cada sección sigue el mismo recorrido, marcado con los mismos símbolos:
+
+| | Bloque | Qué encuentras |
+|---|---|---|
+| 💡 | La analogía | una idea cotidiana con una **ilustración** hecha para el curso |
+| 🧮 | La ecuación en palabras | por qué hace falta la ecuación y qué dice, sin símbolos |
+| 📐 | La ecuación completa | cada término coloreado igual que en el dibujo, con su significado |
+| 🎛️ | Qué pasa si… | **gráficas interactivas** con deslizadores (`enzimas.interactivo`) |
+| 🔬 | Los datos reales | simulaciones y valores medidos, con sus fuentes |
+| ✅ | Para llevar | la idea clave en dos líneas |
+
+Pensado para estudiantes de pregrado.
 
 ## Cómo usarlo
 
@@ -61,10 +70,27 @@ enzimas/     paquete Python
    colab_setup.py   instalación en Colab
 scripts/     01_preparar_sistema.py, 02_dinamica_molecular.py, 03_qmmm_reaccion.py,
              03b/03c (sitio activo en agua), 03d (termoquímica y método), 03e (instantáneas de MD),
-             construir_notebook.py (genera el notebook)
+             04_ilustraciones.py (dibujos del curso, SVG → PNG),
+             construir_notebook.py (genera el notebook a partir de cuaderno/sNN_*.py)
+   cuaderno/        el texto y las celdas del curso, un archivo por sección
+   ilustraciones/   las ilustraciones, una función por dibujo (lienzo.py = estilo común)
+assets/      ilustraciones/  SVG fuente y PNG que se incrustan en el notebook
 data/        raw/ (PDB) y precalculado/ (sistema, MD, QM/MM)
 tests/       pytest
 ```
+
+## Cómo editar el curso
+
+El notebook no se edita a mano: se genera.
+
+```bash
+python scripts/04_ilustraciones.py     # redibuja assets/ilustraciones (requiere rsvg-convert)
+python scripts/construir_notebook.py   # reconstruye el notebook e incrusta los PNG
+```
+
+En el texto de una sección, `[[fig:nombre | texto alternativo]]` inserta la ilustración
+`assets/ilustraciones/nombre.png`. Va incrustada en el notebook, así que se ve en Colab sin conexión
+y sin rutas relativas.
 
 ## Cómo se generaron los datos precalculados
 
@@ -89,7 +115,7 @@ tests/       pytest
    para la conformación cristalina minimizada.
 
 Resultados principales (PM7, entorno fijo): barrera electrónica en la enzima 19.1 kcal/mol con
-una sola frecuencia imaginaria (−149 cm⁻¹); ΔG‡ armónica 19.8 kcal/mol; sitio activo en agua
+una sola frecuencia imaginaria (−149 cm⁻¹); ΔG‡ armónica 19.75 kcal/mol; sitio activo en agua
 21.6 kcal/mol; ΔE de reacción +13.7 kcal/mol; distancia Pγ–O6 media en la MD 3.44 Å. Para
 comparar: la barrera QM/MM publicada por Zhang et al. (2009) es 18.3 kcal/mol y la que implica
 k<sub>cat</sub> ≈ 62–66 s⁻¹ es ≈ 15 kcal/mol.
