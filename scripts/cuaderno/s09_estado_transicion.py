@@ -76,25 +76,36 @@ $$\nu \;=\; \frac{1}{2\pi}\sqrt{\frac{{\color{#eb6834}{k}}}{\mu}}$$
 """)
 
 code(r'''
+# @title ⛰️ Del escaneo al camino de mínima energía (NEB)
 neb = datos.csv("qmmm/neb.csv")
 perfiles = [(xi_esc, e_esc, "escaneo restringido"),
             (np.r_[R["xi"], neb["xi"].values[1:]], np.r_[0.0, neb["energia_rel_kcal"].values[1:]], "NEB (imagen trepadora)")]
-fig = viz.plot_energy_profiles(perfiles, xlabel="ξ (Å)", relative=False, title="Del escaneo al camino de mínima energía",
-                               subtitle="El NEB relaja todas las coordenadas a la vez; la imagen trepadora sube a la cima")
+fig = viz.plot_energy_profiles(perfiles, xlabel="ξ (Å)", relative=False, colors=[viz.INK_MUTED, viz.COLORS["reactivo"]],
+                               title="El NEB encuentra la misma cima por un camino más natural",
+                               subtitle="Gris: escaneo que fuerza una sola distancia. Azul: NEB, que relaja todas las coordenadas a la vez")
 fig;
 ''')
 
 code(r'''
+# @title ✅ El estado de transición y su frecuencia imaginaria
 ts = res["etapas"].get("dimero")
 if ts is None or not ts.get("convergido", True):
-    print("(el dímero no convergió: se usa la imagen trepadora del NEB como TS)")
+    display(viz.mensaje("El dímero no convergió: se usa la imagen trepadora del NEB como TS.", "ojo"))
     ts = ts or {**res["etapas"]["neb"], "xi": neb.loc[res["etapas"]["neb"]["imagen_ts"], "xi"], "d_PG_O6": float("nan"), "d_PG_O3B": float("nan")}
 fr = res["etapas"].get("frecuencias", {})
-print("TS refinado (dímero): barrera ΔE‡ = %.1f kcal/mol; ξ = %+.2f Å; d(Pγ–O6) = %.2f Å; d(Pγ–O3β) = %.2f Å"
-      % (ts["barrera_kcal"], ts["xi"], ts["d_PG_O6"], ts["d_PG_O3B"]))
-print("Frecuencias más bajas (cm⁻¹, negativas = imaginarias):", np.round(fr["frecuencias_mas_bajas"], 1))
 val = fr["validacion"]
-print("Modos imaginarios:", val["imaginary_mode_count"], "→", "punto de silla de primer orden ✔" if val["ok"] else "revisar ✘")
+freqs = np.asarray(fr["frecuencias_mas_bajas"])
+tarjetas_ts = viz.tarjetas(
+    [("Barrera ΔE‡", f"{ts['barrera_kcal']:.1f}", "kcal/mol", "desde el reactivo relajado (método del dímero)", "naranja"),
+     ("ξ en la cima", f"{ts['xi']:+.2f}", "Å", "casi cero: a medio camino", "naranja"),
+     ("Pγ ··· O6 / Pγ ··· O3β", f"{ts['d_PG_O6']:.2f} / {ts['d_PG_O3B']:.2f}", "Å", "el fósforo, equidistante de los dos oxígenos", "azul"),
+     ("Frecuencias imaginarias", f"{val['imaginary_mode_count']}", "", "punto de silla de primer orden ✔" if val["ok"] else "revisar ✘",
+      "verde" if val["ok"] else "rojo")],
+    titulo="El estado de transición, localizado y validado")
+fig = viz.plot_frequencies([("TS en la enzima", freqs)],
+                           title=f"Una sola frecuencia imaginaria ({freqs.min():.0f} cm⁻¹): es un punto de silla".replace("-", "−"),
+                           subtitle="Las seis vibraciones más lentas del estado de transición; las demás son reales (positivas)")
+viz.mostrar(tarjetas_ts, fig)
 ''')
 
 md(r"""
@@ -110,13 +121,14 @@ dos modelos discrepen en el *orden* de los pasos, pero coincidan en la barrera (
 un buen ejemplo de por qué los mecanismos se estudian con simulaciones y con mutantes.
 
 **El movimiento del estado de transición.** La frecuencia imaginaria corresponde a una vibración
-que no oscila sino que "cae" hacia reactivo o hacia producto. Animándola vemos la química:
+que no oscila sino que "cae" hacia reactivo o hacia producto. Animándola vemos la química: mira
+cómo el fósforo va y viene entre el O3β del ATP y el O6 de la glucosa, y cómo el punto de la
+gráfica cruza de la zona «hacia el reactivo» a la zona «hacia el producto»:
 """)
 
 code(r'''
-vibra = np.load(datos.ruta("qmmm/frecuencias_ts.npz"))
-cuadros_modo = viz.mode_animation_frames(vibra["ts_xyz"], vibra["modo_imaginario"], n_frames=24, amplitude=0.6)
-viz.view_frames(cuadros_modo, list(vibra["simbolos"]), interval_ms=60, bonds_from=0)
+# @title 🎞️ El movimiento del estado de transición
+visor3d.modo_imaginario()
 ''')
 
 md(r"""
@@ -127,17 +139,20 @@ reactivo y hasta el producto. Esto confirma que **este** TS conecta **estos** re
 """)
 
 code(r'''
+# @title ⬇️ Bajar de la cima hacia reactivo y producto
 camino = datos.csv("qmmm/camino_descenso.csv")
 fig = viz.plot_energy_profile(camino["xi"].values, camino["energia_rel_kcal"].values, relative=False, xlabel="ξ (Å)",
-                              ts_index=int(camino["energia_rel_kcal"].idxmax()), smooth=False,
-                              title="Camino de mínima energía descendente desde el TS",
-                              subtitle="Cada punto es una geometría relajada; el TS está en el centro")
+                              ts_index=int(camino["energia_rel_kcal"].idxmax()), smooth=False, sort=False, annotate_states=True,
+                              state_names=("reactivo", "TS", "fin del descenso"),
+                              title="Desde la cima se baja a los dos valles: este TS conecta R con P",
+                              subtitle="Cada punto es una geometría relajada; la meseta tras la cima es el protón que pasa a Asp205")
 fig;
 ''')
 
 code(r'''
+# @title 📊 Diagrama de energía de la reacción
 niveles = [("E·S (reactivo)", 0.0), ("TS", ts["barrera_kcal"]), ("E·P (producto)", P["dE_reaccion_kcal"])]
-fig = viz.plot_energy_levels(niveles, ts_indices=[1], title="Diagrama de energía de la reacción en la enzima",
+fig = viz.plot_energy_levels(niveles, ts_indices=[1], title="La reacción en tres números",
                              subtitle="PM7/Amber, entorno fijo: energías electrónicas relativas (ΔE), todavía no energías libres")
 fig;
 ''')

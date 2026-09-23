@@ -17,18 +17,19 @@ xtick.labelcolor: 52514e
 ytick.labelcolor: 52514e
 
 # --- Tipografía -----------------------------------------------------------
-font.family: sans-serif
-font.sans-serif: Helvetica Neue, Helvetica, Arial, Segoe UI, Roboto, DejaVu Sans
-font.size: 10.5
-axes.titlesize: 13
+font.family: Figtree, DejaVu Sans, sans-serif
+font.sans-serif: Figtree, DejaVu Sans, Arial
+font.size: 12
+axes.titlesize: 15
 axes.titleweight: semibold
 axes.titlelocation: left
 axes.titlepad: 12
-axes.labelsize: 10.5
-xtick.labelsize: 9.5
-ytick.labelsize: 9.5
-legend.fontsize: 9.5
+axes.labelsize: 12
+xtick.labelsize: 11
+ytick.labelsize: 11
+legend.fontsize: 11
 mathtext.fontset: dejavusans
+axes.formatter.use_mathtext: True
 
 # --- Ejes, rejilla y bordes -----------------------------------------------
 axes.edgecolor: c3c2b7
@@ -56,10 +57,10 @@ axes.xmargin: 0.03
 axes.ymargin: 0.06
 
 # --- Marcas ---------------------------------------------------------------
-lines.linewidth: 2.0
+lines.linewidth: 2.4
 lines.solid_capstyle: round
 lines.solid_joinstyle: round
-lines.markersize: 6.5
+lines.markersize: 7.5
 lines.markeredgewidth: 1.2
 lines.markeredgecolor: fcfcfb
 patch.linewidth: 0
@@ -74,7 +75,7 @@ legend.borderaxespad: 0.3
 legend.columnspacing: 1.2
 
 # --- Figura ---------------------------------------------------------------
-figure.figsize: 7.0, 4.2
+figure.figsize: 9.6, 5.2
 figure.dpi: 110
 savefig.dpi: 200
 savefig.bbox: tight

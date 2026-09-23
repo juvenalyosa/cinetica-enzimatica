@@ -83,6 +83,7 @@ Elige el tipo de inhibidor y mueve [I] y K<sub>i</sub>:
 """)
 
 code(r'''
+# @title 🎛️ Tipos de inhibidor y su huella
 # 🎛️ Elige el tipo de inhibidor y mueve [I] y Ki: mira la curva y su huella en Lineweaver–Burk
 interactivo.explorar_inhibicion()
 ''')
@@ -109,6 +110,7 @@ inhibidor.
 """)
 
 code(r'''
+# @title 🔬 Tres caminos para medir K_i
 Ki_real = 3.0                                   # mM (inhibidor competitivo hipotético)
 S_exp = np.array([1, 2, 4, 8, 16, 32, 64]); I_exp = (0, 2, 5, 10)
 filas = []
@@ -118,31 +120,55 @@ for I in I_exp:
 df_i = pd.DataFrame(filas, columns=["S", "v", "I"])
 # 1) ajuste global
 aji = cin.fit_inhibition(df_i.S.values, df_i.v.values, df_i.I.values, kind="competitive")
-print(f"1) Ajuste global:      K_i = {aji['ki']:.2f} ± {aji['ki_err']:.2f} mM   (K_M = {aji['km']:.2f} mM, V_max = {aji['vmax']:.2f} µM/s)")
 # 2) gráfico secundario: Km aparente frente a [I]
 km_ap = np.array([cin.fit_michaelis_menten(df_i[df_i.I == I].S.values, df_i[df_i.I == I].v.values)["km"] for I in I_exp])
 sec = cin.secondary_plot_competitive(np.array(I_exp), km_ap, aji["km"])
-print(f"2) Gráfico secundario: K_i = {sec['ki']:.2f} mM (R² = {sec['r2']:.3f})")
 # 3) Dixon
 dx = cin.dixon_plot(df_i.S.values, df_i.v.values, df_i.I.values)
 kd = cin.ki_from_dixon(sorted(dx["lines"]), dx, aji["km"], aji["vmax"])
-print(f"3) Dixon:              K_i = {kd['ki']:.2f} mM (por el cruce de las rectas)")
-fig, axes = viz.figure(11, 4, ncols=2)
-for (s_val, (ii, inv_v)), color in zip(sorted(dx["lines"].items()), viz.sequential_blue(len(dx["lines"]))):
-    fit = dx["fits"][s_val]
-    xx = np.linspace(-1.3 * Ki_real, max(I_exp), 50)
-    axes[0].plot(xx, fit["intercept"] + fit["slope"] * xx, color=color, lw=1.5)
-    axes[0].plot(ii, inv_v, "o", color=color, ms=5, label=f"[S] = {s_val:g} mM")
-axes[0].axvline(-Ki_real, color=viz.INK_MUTED, ls="--", lw=1); axes[0].set_xlabel("[I] (mM)"); axes[0].set_ylabel("1/v₀ (s/µM)")
-axes[0].set_title("Gráfico de Dixon: las rectas se cruzan en [I] = −Kᵢ", loc="left", fontsize=11); axes[0].legend(fontsize=8)
-axes[1].plot(I_exp, km_ap, "o", color=viz.COLORS["datos"], ms=6)
-xx = np.linspace(0, max(I_exp), 20); axes[1].plot(xx, aji["km"] * (1 + xx / aji["ki"]), color=viz.INK_MUTED, lw=1.5)
-axes[1].set_xlabel("[I] (mM)"); axes[1].set_ylabel("K_M aparente (mM)"); axes[1].set_title("Gráfico secundario: pendiente = K_M/Kᵢ", loc="left", fontsize=11)
-fig;
 # 4) IC50 -> Ki (Cheng–Prusoff)
 S_ensayo = 8.0
 ic50 = Ki_real * (1 + S_ensayo / Km_real)
-print(f"4) Cheng–Prusoff: con [S] = {S_ensayo} mM la IC₅₀ sería {ic50:.1f} mM y devuelve K_i = {cin.cheng_prusoff(ic50, S_ensayo, Km_real):.2f} mM")
+
+fig, axes = viz.figure(14, 5.6, ncols=2)
+colores = viz.sequential_blue(len(dx["lines"]))
+for (s_val, (ii, inv_v)), color in zip(sorted(dx["lines"].items()), colores):
+    fit = dx["fits"][s_val]
+    xx = np.linspace(-1.3 * Ki_real, max(I_exp), 50)
+    axes[0].plot(xx, fit["intercept"] + fit["slope"] * xx, color=color, lw=1.4, ls=(0, (4, 3)), zorder=2)
+    xs = np.linspace(0, max(I_exp), 20)
+    axes[0].plot(xs, fit["intercept"] + fit["slope"] * xs, color=color, lw=2.6, zorder=3)
+    viz._markers(axes[0], ii, inv_v, color, label=f"[S] = {s_val:g} mM", size=8)
+f_lo = dx["fits"][sorted(dx["lines"])[0]]
+axes[0].axvline(0, color=viz.AXIS, lw=0.9, zorder=1); axes[0].axhline(0, color=viz.AXIS, lw=0.9, zorder=1)
+viz._keypoint(axes[0], -kd["ki"], f_lo["intercept"] - f_lo["slope"] * kd["ki"], viz.COLORS["ts"], size=10)
+axes[0].annotate(f"se cruzan en [I] = −Kᵢ\nKᵢ ≈ {kd['ki']:.2f} mM", (-kd["ki"], f_lo["intercept"] - f_lo["slope"] * kd["ki"]),
+                 xytext=(4, -24), textcoords="offset points", ha="left", va="top", fontsize=11, color=viz.INK, fontweight="semibold")
+viz._finish(axes[0], "[I] (mM)", "1/v₀ (s/µM)")
+axes[0].set_ylim(bottom=-0.18 * axes[0].get_ylim()[1])
+viz._legend(axes[0], loc="upper left", fontsize=10)
+axes[0].set_title("Gráfico de Dixon", loc="left", fontsize=13, fontweight="semibold", pad=10)
+xx = np.linspace(0, max(I_exp), 20)
+axes[1].fill_between(xx, aji["km"], aji["km"] * (1 + xx / aji["ki"]), color=viz._tint(viz.PALETTE[7], 0.9), lw=0, zorder=1)
+axes[1].plot(xx, aji["km"] * (1 + xx / aji["ki"]), color=viz.INK_SECONDARY, lw=2.4, zorder=2)
+viz._markers(axes[1], I_exp, km_ap, viz.COLORS["datos"], size=9)
+viz._guide(axes[1], "h", aji["km"])
+axes[1].annotate("K_M sin inhibidor", (max(I_exp), aji["km"]), xytext=(-4, -6), textcoords="offset points", ha="right", va="top",
+                 fontsize=10.5, color=viz.INK_SECONDARY)
+axes[1].annotate(f"pendiente = K_M/Kᵢ\n→ Kᵢ = {sec['ki']:.2f} mM", (0.55 * max(I_exp), aji["km"] * (1 + 0.55 * max(I_exp) / aji["ki"])),
+                 xytext=(-14, 10), textcoords="offset points", ha="right", va="bottom", fontsize=11, color=viz.INK, fontweight="semibold")
+axes[1].set_ylim(0, None)
+viz._finish(axes[1], "[I] (mM)", "K_M aparente (mM)")
+axes[1].set_title("Gráfico secundario", loc="left", fontsize=13, fontweight="semibold", pad=10)
+viz._fig_title(fig, f"Tres caminos, un mismo Kᵢ ≈ {aji['ki']:.1f} mM (valor usado para simular: {Ki_real:g} mM)",
+               "Izquierda: 1/v₀ frente a [I] para varias [S]. Derecha: K_M aparente frente a [I]. Ambos con los mismos datos.")
+viz.mostrar(fig, viz.tarjetas([
+    ("1 · ajuste global", f"{aji['ki']:.2f}", f"± {aji['ki_err']:.2f} mM", f"K_M = {aji['km']:.2f} mM, V_max = {aji['vmax']:.2f} µM/s", "azul"),
+    ("2 · gráfico secundario", f"{sec['ki']:.2f}", "mM", f"R² = {sec['r2']:.3f}", "agua"),
+    ("3 · Dixon", f"{kd['ki']:.2f}", "mM", "por el cruce de las rectas", "naranja"),
+    ("4 · Cheng–Prusoff", f"{cin.cheng_prusoff(ic50, S_ensayo, Km_real):.2f}", "mM", f"desde IC₅₀ = {ic50:.1f} mM con [S] = {S_ensayo:g} mM", "violeta"),
+], titulo="Kᵢ del mismo inhibidor, medido de cuatro maneras",
+   nota="Si los métodos coinciden, el modelo (competitivo) describe bien los datos."))
 ''')
 
 md(r"""
@@ -162,12 +188,19 @@ Tabla con fuentes. Tres cosas que sorprenden:
 """)
 
 code(r'''
+# @title 📋 Inhibidores y activadores reales de la glucoquinasa
 inh = ref.get("inhibitors", [])
-display(pd.DataFrame([(d.get("name"), d.get("kind"), d.get("versus", ""), d.get("ki", ""), d.get("note", ""), d.get("source", "")) for d in inh],
-                     columns=["inhibidor / regulador", "tipo", "frente a", "Kᵢ / efecto", "nota", "fuente"]))
+tipos = {"competitive": "competitivo", "mixed": "mixto", "none": "ninguno", "slow-binding": "unión lenta",
+         "uncompetitive": "acompetitivo", "noncompetitive": "no competitivo"}
 act = ref.get("activators", [])
-display(pd.DataFrame([(d.get("name"), d.get("fold", ""), d.get("ec50", ""), d.get("note", ""), d.get("source", "")) for d in act],
-                     columns=["activador", "activación (veces)", "EC₅₀", "nota", "fuente"]))
+viz.mostrar(
+    viz.tabla(pd.DataFrame([(d.get("name"), tipos.get(d.get("kind"), d.get("kind")), d.get("versus", ""), d.get("ki", ""), d.get("note", ""), d.get("source", "")) for d in inh],
+                           columns=["inhibidor / regulador", "tipo", "frente a", "Kᵢ / efecto", "nota", "fuente"]),
+              titulo="Inhibidores y reguladores de la glucoquinasa"),
+    viz.tabla(pd.DataFrame([(d.get("name"), d.get("fold", ""), d.get("ec50", ""), d.get("note", ""), d.get("source", "")) for d in act],
+                           columns=["activador", "activación (veces)", "EC₅₀", "nota", "fuente"]),
+              titulo="Activadores alostéricos (GKA)"),
+)
 ''')
 
 md(r"""
@@ -181,6 +214,7 @@ pasa con la actividad a 5 mM de glucosa cuando bajas S<sub>0.5</sub>? Muévelo:
 """)
 
 code(r'''
+# @title 🎛️ Un activador alostérico
 # 🎛️ Un activador alostérico: baja S0.5 y sube Vmax. ¿Qué pasa con la actividad a 5 mM de glucosa?
 interactivo.explorar_activador()
 ''')

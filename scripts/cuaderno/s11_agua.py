@@ -63,14 +63,21 @@ que llegaron al mismo punto de silla.
 """)
 
 code(r'''
+# @title 💧 El sitio activo en agua: resultados de MOPAC
 agua = res["etapas"]["agua"]
-print("1) SADDLE (QST2): estimación del TS %.1f kcal/mol por encima del reactivo (ξ = %+.2f Å)" % (agua["barrera_saddle_qst2_kcal"], agua["saddle_xi"]))
-print("2) Refinamiento (%s): barrera = %.1f kcal/mol; ΔE(reacción) = %+.1f kcal/mol" % (agua["metodo_ts"], agua["barrera_kcal"], agua["dE_reaccion"]))
-print("   geometría del TS en agua: d(Pγ–O6) = %.2f Å, d(Pγ–O3β) = %.2f Å, d(O6–H) = %.2f Å" % (agua["ts_d_PG_O6"], agua["ts_d_PG_O3B"], agua["ts_d_O6_H"]))
-print("3) FORCETS de MOPAC, frecuencias más bajas (cm⁻¹):", np.round(agua["frecuencias_mas_bajas"], 1))
+display(viz.tarjetas(
+    [("1 · SADDLE (QST2)", f"{agua['barrera_saddle_qst2_kcal']:.1f}", "kcal/mol", f"primera estimación del TS, ξ = {agua['saddle_xi']:+.2f} Å", "gris"),
+     ("2 · TS refinado", f"{agua['barrera_kcal']:.1f}", "kcal/mol", agua["metodo_ts"], "naranja"),
+     ("Geometría del TS", f"{agua['ts_d_PG_O6']:.2f} / {agua['ts_d_PG_O3B']:.2f}", "Å",
+      f"Pγ···O6 / Pγ···O3β; el O6–H sigue en {agua['ts_d_O6_H']:.2f} Å", "azul"),
+     ("ΔE de reacción", f"{agua['dE_reaccion']:+.1f}", "kcal/mol", "en agua la reacción es cuesta abajo", "agua")],
+    titulo="La misma reacción, fuera de la enzima (PM7 + agua implícita COSMO)"))
+conjuntos = [("3 · FORCETS (MOPAC)", agua["frecuencias_mas_bajas"])]
 if "frecuencias_ase_mas_bajas" in agua:
-    print("   Hessiano numérico (ASE), frecuencias más bajas (cm⁻¹):", np.round(agua["frecuencias_ase_mas_bajas"], 1),
-          "→ modos imaginarios:", agua["validacion_ts_ase"]["imaginary_mode_count"])
+    conjuntos.append(("Hessiano más fino (ASE)", agua["frecuencias_ase_mas_bajas"]))
+fig = viz.plot_frequencies(conjuntos, title="Mirar la magnitud, no solo contar las imaginarias",
+                           subtitle="Gris: ruido de la cavidad del disolvente. Naranja: movimientos que «caen». El Hessiano más fino deja uno solo: la reacción")
+viz.mostrar(fig)
 ''')
 
 md(r"""
@@ -84,25 +91,41 @@ eso pasa en la práctica); el camino se obtuvo con el mismo descenso desde el TS
 """)
 
 code(r'''
+# @title 📈 El camino de reacción en agua
 try:
     cam_agua = datos.csv("qmmm/agua_camino_descenso.csv")
     fig = viz.plot_energy_profile(cam_agua["xi"].values, cam_agua["energia_kcal"].values - agua["E_reactivo"], relative=False,
-                                  xlabel="ξ (Å)", smooth=False, ts_index=int(np.argmax(cam_agua["energia_kcal"].values)),
-                                  title="Camino de reacción del sitio activo en agua (COSMO)",
-                                  subtitle="Energías relativas al reactivo en agua; el máximo es el TS refinado")
+                                  xlabel="ξ (Å)", smooth=False, sort=False, ts_index=int(np.argmax(cam_agua["energia_kcal"].values)),
+                                  annotate_states=True, annotate_reaction=True, state_names=("reactivo", "TS", "producto"),
+                                  color=viz.PALETTE[6],
+                                  title=f"En agua la colina mide {agua['barrera_kcal']:.1f} kcal/mol",
+                                  subtitle="Camino de descenso desde el TS refinado; energías relativas al reactivo en agua")
     fig;
 except FileNotFoundError:
-    print("(camino en agua no disponible)")
+    display(viz.mensaje("Camino en agua no disponible.", "ojo"))
+''')
+
+md(r"""
+La misma película que en la sección 8, pero ahora **sin el resto de la proteína**: solo el sitio
+activo en agua. Compara la altura de la colina en la gráfica con la de la enzima.
+""")
+
+code(r'''
+# @title 🎬 La reacción en agua, sincronizada con su energía
+visor3d.pelicula_reaccion("agua")
 ''')
 
 code(r'''
+# @title ⚖️ Dentro de la enzima frente a fuera de ella
 con = [("E·S", 0.0), ("TS", ts["barrera_kcal"]), ("E·P", P["dE_reaccion_kcal"])]
 sin = [("R", 0.0), ("TS", agua["barrera_kcal"]), ("P", agua["dE_reaccion"])]
+efecto = ts["barrera_kcal"] - agua["barrera_kcal"]
 fig = viz.plot_energy_levels(con, compare=sin, ts_indices=[1], label="dentro de la enzima", compare_label="sitio activo en agua",
-                             title="Dentro de la enzima frente a fuera de ella",
-                             subtitle="La diferencia entre las dos colinas es el efecto del resto de la proteína")
-fig;
-print("Efecto del entorno proteico sobre la barrera: %+.1f kcal/mol" % (ts["barrera_kcal"] - agua["barrera_kcal"]))
+                             title=f"El resto de la proteína baja la colina {abs(efecto):.1f} kcal/mol",
+                             subtitle="Azul/naranja: dentro de la enzima. Gris: el mismo sitio activo en agua")
+viz.mostrar(fig, viz.tarjetas(
+    [("Efecto del entorno proteico", f"{efecto:+.1f}", "kcal/mol", "barrera en la enzima − barrera en agua", "azul"),
+     ("En velocidad", f"× {10 ** (-efecto / 1.364):.0f}", "", "cada 1.36 kcal/mol es un factor 10", "naranja")]))
 ''')
 
 md(r"""

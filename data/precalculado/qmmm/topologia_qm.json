@@ -1,0 +1,883 @@
+{
+"atomos": [
+{
+"nombre": "C2",
+"elemento": "C",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "C3",
+"elemento": "C",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "C4",
+"elemento": "C",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "C5",
+"elemento": "C",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "C6",
+"elemento": "C",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "C1",
+"elemento": "C",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "O1",
+"elemento": "O",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "O2",
+"elemento": "O",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "O3",
+"elemento": "O",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "O4",
+"elemento": "O",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "O5",
+"elemento": "O",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "O6",
+"elemento": "O",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "H1",
+"elemento": "H",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "H2",
+"elemento": "H",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "H3",
+"elemento": "H",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "H4",
+"elemento": "H",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "H5",
+"elemento": "H",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "H6",
+"elemento": "H",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "H7",
+"elemento": "H",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "H8",
+"elemento": "H",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "H9",
+"elemento": "H",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "H10",
+"elemento": "H",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "H11",
+"elemento": "H",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "H12",
+"elemento": "H",
+"residuo": "GLC",
+"resseq": 455,
+"etiqueta": "glucosa"
+},
+{
+"nombre": "PG",
+"elemento": "P",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "O1G",
+"elemento": "O",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "O2G",
+"elemento": "O",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "O3G",
+"elemento": "O",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "PB",
+"elemento": "P",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "O1B",
+"elemento": "O",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "O2B",
+"elemento": "O",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "O3B",
+"elemento": "O",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "PA",
+"elemento": "P",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "O1A",
+"elemento": "O",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "O2A",
+"elemento": "O",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "O3A",
+"elemento": "O",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "O5'",
+"elemento": "O",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "C5'",
+"elemento": "C",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "H1",
+"elemento": "H",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "H2",
+"elemento": "H",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "CB",
+"elemento": "C",
+"residuo": "ASP",
+"resseq": 201,
+"etiqueta": "Asp205"
+},
+{
+"nombre": "HB2",
+"elemento": "H",
+"residuo": "ASP",
+"resseq": 201,
+"etiqueta": "Asp205"
+},
+{
+"nombre": "HB3",
+"elemento": "H",
+"residuo": "ASP",
+"resseq": 201,
+"etiqueta": "Asp205"
+},
+{
+"nombre": "CG",
+"elemento": "C",
+"residuo": "ASP",
+"resseq": 201,
+"etiqueta": "Asp205"
+},
+{
+"nombre": "OD1",
+"elemento": "O",
+"residuo": "ASP",
+"resseq": 201,
+"etiqueta": "Asp205"
+},
+{
+"nombre": "OD2",
+"elemento": "O",
+"residuo": "ASP",
+"resseq": 201,
+"etiqueta": "Asp205"
+},
+{
+"nombre": "CB",
+"elemento": "C",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "HB2",
+"elemento": "H",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "HB3",
+"elemento": "H",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "CG",
+"elemento": "C",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "HG2",
+"elemento": "H",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "HG3",
+"elemento": "H",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "CD",
+"elemento": "C",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "HD2",
+"elemento": "H",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "HD3",
+"elemento": "H",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "CE",
+"elemento": "C",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "HE2",
+"elemento": "H",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "HE3",
+"elemento": "H",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "NZ",
+"elemento": "N",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "HZ1",
+"elemento": "H",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "HZ2",
+"elemento": "H",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "HZ3",
+"elemento": "H",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "CB",
+"elemento": "C",
+"residuo": "THR",
+"resseq": 224,
+"etiqueta": "Thr228"
+},
+{
+"nombre": "HB",
+"elemento": "H",
+"residuo": "THR",
+"resseq": 224,
+"etiqueta": "Thr228"
+},
+{
+"nombre": "OG1",
+"elemento": "O",
+"residuo": "THR",
+"resseq": 224,
+"etiqueta": "Thr228"
+},
+{
+"nombre": "HG1",
+"elemento": "H",
+"residuo": "THR",
+"resseq": 224,
+"etiqueta": "Thr228"
+},
+{
+"nombre": "CG2",
+"elemento": "C",
+"residuo": "THR",
+"resseq": 224,
+"etiqueta": "Thr228"
+},
+{
+"nombre": "HG21",
+"elemento": "H",
+"residuo": "THR",
+"resseq": 224,
+"etiqueta": "Thr228"
+},
+{
+"nombre": "HG22",
+"elemento": "H",
+"residuo": "THR",
+"resseq": 224,
+"etiqueta": "Thr228"
+},
+{
+"nombre": "HG23",
+"elemento": "H",
+"residuo": "THR",
+"resseq": 224,
+"etiqueta": "Thr228"
+},
+{
+"nombre": "MG",
+"elemento": "Mg",
+"residuo": "MG",
+"resseq": 457,
+"etiqueta": "Mg²⁺"
+},
+{
+"nombre": "O",
+"elemento": "O",
+"residuo": "HOH",
+"resseq": 562,
+"etiqueta": "Hoh566"
+},
+{
+"nombre": "H1",
+"elemento": "H",
+"residuo": "HOH",
+"resseq": 562,
+"etiqueta": "Hoh566"
+},
+{
+"nombre": "H2",
+"elemento": "H",
+"residuo": "HOH",
+"resseq": 562,
+"etiqueta": "Hoh566"
+},
+{
+"nombre": "HL",
+"elemento": "H",
+"residuo": "ATP",
+"resseq": 456,
+"etiqueta": "ATP"
+},
+{
+"nombre": "HL",
+"elemento": "H",
+"residuo": "ASP",
+"resseq": 201,
+"etiqueta": "Asp205"
+},
+{
+"nombre": "HL",
+"elemento": "H",
+"residuo": "LYS",
+"resseq": 165,
+"etiqueta": "Lys169"
+},
+{
+"nombre": "HL",
+"elemento": "H",
+"residuo": "THR",
+"resseq": 224,
+"etiqueta": "Thr228"
+}
+],
+"enlaces": [
+[
+0,
+1
+],
+[
+0,
+5
+],
+[
+0,
+7
+],
+[
+0,
+12
+],
+[
+1,
+2
+],
+[
+1,
+8
+],
+[
+1,
+13
+],
+[
+2,
+3
+],
+[
+2,
+9
+],
+[
+2,
+14
+],
+[
+3,
+4
+],
+[
+3,
+10
+],
+[
+3,
+15
+],
+[
+4,
+11
+],
+[
+4,
+16
+],
+[
+4,
+17
+],
+[
+5,
+6
+],
+[
+5,
+10
+],
+[
+5,
+18
+],
+[
+6,
+19
+],
+[
+7,
+20
+],
+[
+8,
+21
+],
+[
+9,
+22
+],
+[
+24,
+25
+],
+[
+24,
+26
+],
+[
+24,
+27
+],
+[
+28,
+29
+],
+[
+28,
+30
+],
+[
+28,
+31
+],
+[
+28,
+35
+],
+[
+32,
+33
+],
+[
+32,
+34
+],
+[
+32,
+35
+],
+[
+32,
+36
+],
+[
+36,
+37
+],
+[
+37,
+38
+],
+[
+37,
+39
+],
+[
+37,
+74
+],
+[
+40,
+41
+],
+[
+40,
+42
+],
+[
+40,
+43
+],
+[
+40,
+75
+],
+[
+43,
+44
+],
+[
+43,
+45
+],
+[
+46,
+47
+],
+[
+46,
+48
+],
+[
+46,
+49
+],
+[
+46,
+76
+],
+[
+49,
+50
+],
+[
+49,
+51
+],
+[
+49,
+52
+],
+[
+52,
+53
+],
+[
+52,
+54
+],
+[
+52,
+55
+],
+[
+55,
+56
+],
+[
+55,
+57
+],
+[
+55,
+58
+],
+[
+58,
+59
+],
+[
+58,
+60
+],
+[
+58,
+61
+],
+[
+62,
+63
+],
+[
+62,
+64
+],
+[
+62,
+66
+],
+[
+62,
+77
+],
+[
+64,
+65
+],
+[
+66,
+67
+],
+[
+66,
+68
+],
+[
+66,
+69
+],
+[
+71,
+72
+],
+[
+71,
+73
+],
+[
+72,
+73
+]
+],
+"dinamicos": [
+{
+"i": 24,
+"j": 31,
+"nombre": "Pγ–O3β",
+"papel": "se rompe",
+"r0": 1.63
+},
+{
+"i": 24,
+"j": 11,
+"nombre": "Pγ–O6",
+"papel": "se forma",
+"r0": 1.63
+},
+{
+"i": 11,
+"j": 23,
+"nombre": "O6–H",
+"papel": "se rompe",
+"r0": 0.97
+},
+{
+"i": 23,
+"j": 44,
+"nombre": "H–O(Asp205)",
+"papel": "se forma",
+"r0": 0.97
+}
+],
+"mg": 70,
+"coordinacion_mg": [
+27,
+29,
+31,
+44,
+71
+],
+"destacados": {
+"PG": 24,
+"O3B": 31,
+"O6": 11,
+"H6": 23,
+"OD": 44,
+"MG": 70
+},
+"nota": "Enlaces de la topología Amber (complejo_vacio.prmtop); los 'dinamicos' cambian en la reacción."
+}

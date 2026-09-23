@@ -88,11 +88,12 @@ $$E \;=\; {\color{#eb6834}{E_{\mathrm{PM7}}\big[\text{QM en el potencial de la e
 """)
 
 code(r'''
+# @title 🔍 La región cuántica dentro de la enzima
 particion = datos.json_("qmmm/particion.json")
 print(f"Región QM: {particion['n_qm']} átomos + {particion['n_link']} H de enlace; libres: {particion['n_free']}")
 print(f"Entorno MM: {particion['n_mm']} cargas puntuales; carga QM = {particion['qm_charge']}; carga MM = {particion['mm_charge']:.2f} e")
 print("Átomos QM por residuo:", pd.Series([a["resname"] for a in particion["qm_atoms"]]).value_counts().to_dict())
-viz.view_qm_region(leer("qmmm/region_qm_inicial.pdb"), leer("qmmm/entorno_mm_8A.pdb"), link_atom_indices=particion["fixed"])
+display(visor3d.region_qm())
 ''')
 
 md(r"""
@@ -102,6 +103,7 @@ que todo código de simulación debería pasar antes de usarse:
 """)
 
 code(r'''
+# @title 🧪 Control de calidad: fuerzas analíticas frente a numéricas
 grad = datos.csv("qmmm/comprobacion_gradiente.csv")
 grad["error relativo"] = (grad["diff"].abs() / grad["analytic"].abs().clip(lower=1e-6)).map(lambda x: f"{x:.1%}")
 display(grad.round(3))

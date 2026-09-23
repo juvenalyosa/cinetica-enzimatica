@@ -83,27 +83,60 @@ reactiva**, con el Pγ del ATP cerca del O6 de la glucosa. Esas geometrías se l
 
 [[fig:ataque_cercano | Conformación de ataque cercano con el O6 a menos de 3.5 Å del fósforo frente a una conformación no reactiva]]
 
-**Cómo leer las gráficas.** El RMSD mide cuánto se ha alejado la proteína de la estructura
-inicial (1 Å es poco: la enzima es estable). Las distancias muestran que el fosfato y la
-glucosa "vibran" pero siguen apuntándose.
+**Cómo leer la gráfica.** Cada punto es un fotograma de la película (uno cada 10 ps) y la línea
+gruesa es la media móvil, que borra el temblor y deja ver la tendencia.
+
+* **Arriba, grande:** la distancia entre el fósforo γ del ATP y el O6 de la glucosa. La franja
+  verde es la **zona de ataque cercano** (d < 3.5 Å): mientras la curva está dentro, los reactivos
+  "se apuntan". A la derecha, cuántos fotogramas caen en cada distancia y el porcentaje del tiempo
+  dentro de la zona. La línea negra es el valor del cristal.
+* **Abajo a la izquierda:** el RMSD, cuánto se ha alejado la proteína de la estructura inicial. Un
+  valor plano de ~1 Å es poco: la enzima es estable y no se desarma.
+* **Abajo a la derecha:** la distancia del O6 a la base catalítica, Asp205. La franja verde marca
+  un puente de hidrógeno (< 3.2 Å). Fíjate en que en la simulación clásica Asp205 se queda **fuera**
+  de la franja: volveremos a esto en la sección 10.
 """)
 
 code(r'''
+# @title 🎬 La dinámica molecular: cómo se mueve la enzima
 if MODO == "completo":
     subprocess.run([sys.executable, "scripts/02_dinamica_molecular.py"], check=True)
 
 md_df = datos.csv("md/analisis.csv")
 md_info = datos.json_("md/md.json")
-print(f"Producción: {md_info['produccion_ns']} ns, {md_info['n_atomos']:,} átomos, plataforma {md_info['plataforma']}")
-fig = viz.plot_md_summary(md_df, crystal_value=2.68, subtitle="RMSD del esqueleto y distancias del sitio activo durante la producción")
-fig;
+fig = viz.plot_md_summary(md_df, crystal_value=2.68, crystal_hbond=2.5)
+viz.mostrar(fig, viz.tarjetas(
+    [("Película", f"{md_info['produccion_ns']:g}", "ns", f"{len(md_df)} fotogramas, uno cada {md_info['cuadro_ps']} ps", "gris"),
+     ("Átomos simulados", f"{md_info['n_atomos']:,}".replace(",", " "), "", "proteína, ligandos, agua e iones", "gris"),
+     ("RMSD medio", f"{md_df['rmsd_CA_A'].mean():.2f}", "Å", "la proteína apenas se deforma", "azul"),
+     ("d(Pγ–O6) media", f"{md_df['d_PG_O6_A'].mean():.2f}", "Å", "cristal: 2.68 Å", "agua")]))
+''')
+
+md(r"""
+### 🎬 La película
+
+Aquí está la película de verdad: 100 fotogramas, uno cada 10 ps, alineados sobre la proteína. Las cintas
+son la cadena de la enzima (dominio grande en azul y pequeño en rosa); en el centro, la glucosa, el ATP
+y el Mg²⁺. A la derecha, la distancia Pγ–O6 fotograma a fotograma: el punto amarillo te dice si en ese
+instante los reactivos están «listos para reaccionar» (banda verde).
+""")
+
+code(r'''
+# @title 🎬 La película de la enzima (gírala y dale ▶)
+visor3d.pelicula_md()
 ''')
 
 code(r'''
-umbral = 3.5  # Å: definición práctica de conformación de ataque cercano
+# @title 🎯 ¿Cuánto tiempo pasa la enzima lista para reaccionar?
+umbral = 3.5  # @param {type:"slider", min:2.8, max:4.5, step:0.1}
+# umbral (Å): definición práctica de conformación de ataque cercano
 fraccion = (md_df["d_PG_O6_A"] < umbral).mean()
-print(f"d(Pγ–O6) media = {md_df['d_PG_O6_A'].mean():.2f} Å; fracción de cuadros con d < {umbral} Å = {fraccion:.0%}")
-print("Idea clave: la enzima mantiene los reactivos 'apuntándose' la mayor parte del tiempo. Sin enzima, en agua, ese encuentro sería un golpe de suerte.")
+viz.mostrar(
+    viz.tarjetas([("Umbral elegido", f"{umbral:.1f}", "Å", "d(Pγ–O6) por debajo = «ataque cercano»", "gris"),
+                  ("Tiempo en ataque cercano", f"{fraccion:.0%}", "", f"{int(round(fraccion * len(md_df)))} de {len(md_df)} fotogramas", "agua"),
+                  ("d(Pγ–O6) media", f"{md_df['d_PG_O6_A'].mean():.2f}", "Å", None, "azul")]),
+    viz.mensaje("La enzima mantiene a los reactivos «apuntándose» la mayor parte del tiempo. Sin enzima, en agua, "
+                "ese encuentro sería un golpe de suerte. Mueve el deslizador y vuelve a ejecutar la celda.", "idea"))
 ''')
 
 md(r"""

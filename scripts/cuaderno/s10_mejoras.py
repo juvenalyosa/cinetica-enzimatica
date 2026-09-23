@@ -78,47 +78,54 @@ robusto; si cambia mucho, sabemos cuánto (des)confiar.
 """)
 
 code(r'''
+# @title 🎻 Las vibraciones: de ΔE‡ a ΔG‡
 termo = res["etapas"].get("termoquimica", {})
 T_ref = "298.15"
 if T_ref in termo:
     t = termo[T_ref]
-    print("Termoquímica armónica a 298.15 K (átomos libres de la región QM):")
-    print(f"  ΔE‡ = {t['dE_kcal']:.1f}   ΔZPE = {t['dZPE_kcal']:+.1f}   ΔH‡ = {t['dH_kcal']:.1f} kcal/mol   ΔS‡(vib) = {t['dS_vib_cal']:+.1f} cal/mol/K   →   ΔG‡ = {t['dG_kcal']:.1f} kcal/mol")
-    for Tk in ("303.15", "310.15"):
-        if Tk in termo:
-            print(f"  a {float(Tk) - 273.15:.0f} °C: ΔG‡ = {termo[Tk]['dG_kcal']:.1f} kcal/mol")
-    print("  ", termo.get("nota", ""))
+    extra = [f"a {float(Tk) - 273.15:.0f} °C: ΔG‡ = {termo[Tk]['dG_kcal']:.2f} kcal/mol" for Tk in ("303.15", "310.15") if Tk in termo]
+    display(viz.tarjetas(
+        [("ΔE‡ electrónica", f"{t['dE_kcal']:.2f}", "kcal/mol", "la colina con los átomos quietos", "gris"),
+         ("ΔZPE", f"{t['dZPE_kcal']:+.2f}", "kcal/mol", "el resorte P–O que se rompe deja de vibrar", "agua"),
+         ("ΔS‡ vibracional", f"{t['dS_vib_cal']:+.1f}", "cal/mol/K", f"TS más rígido → −TΔS‡ = {-298.15 * t['dS_vib_cal'] / 1000:+.2f} kcal/mol", "magenta"),
+         ("ΔG‡ a 25 °C", f"{t['dG_kcal']:.2f}", "kcal/mol", f"ΔH‡ = {t['dH_kcal']:.2f} kcal/mol", "naranja")],
+        titulo="Termoquímica armónica (átomos libres de la región QM)",
+        nota=" · ".join(extra) + ("  —  " + termo["nota"] if termo.get("nota") else "")))
 else:
-    print("(termoquímica no disponible en estos datos)")
+    display(viz.mensaje("Termoquímica no disponible en estos datos.", "ojo"))
 ''')
 
 code(r'''
+# @title 📸 La barrera en distintas conformaciones de la MD
 try:
     inst = datos.json_("qmmm/instantaneas.json")
-    filas = [(r["instantanea"], r.get("barrera_kcal", np.nan), r.get("ts_d_PG_O6", np.nan), r.get("ts_d_PG_O3B", np.nan),
-              r.get("ts_origen", "dímero" if "barrera_kcal" in r else "falló"))
-             for r in inst["instantaneas"]]
-    df_inst = pd.DataFrame(filas, columns=["instantánea", "ΔE‡ (kcal/mol)", "d(Pγ–O6) TS (Å)", "d(Pγ–O3β) TS (Å)", "TS obtenido por"])
-    display(df_inst.round(2))
+    def _hay(v):
+        return v is not None and np.isfinite(v)
+    filas = []
+    for r in inst["instantaneas"]:
+        b = r.get("barrera_kcal")
+        if _hay(b):
+            que = f"TS encontrado ({r.get('ts_origen', 'dímero')}): barrera {b:.1f} kcal/mol, hay producto estable"
+        else:
+            que = (f"sin producto estable: la energía sube hasta {r['escaneo_max_rel_kcal']:.0f} kcal/mol en ξ = {r['xi_max']:.1f} Å; "
+                   f"el H del O6 está a {r['d_OD1_H_reactivo']:.1f} Å de Asp205")
+        filas.append((r["instantanea"], b if _hay(b) else np.nan, r.get("ts_d_PG_O6", np.nan), r.get("ts_d_PG_O3B", np.nan), que))
+    df_inst = pd.DataFrame(filas, columns=["conformación", "ΔE‡ (kcal/mol)", "d(Pγ–O6) TS (Å)", "d(Pγ–O3β) TS (Å)", "¿qué pasó?"])
     ok = df_inst.dropna(subset=["ΔE‡ (kcal/mol)"])
     media, sd = ok["ΔE‡ (kcal/mol)"].mean(), ok["ΔE‡ (kcal/mol)"].std(ddof=1) if len(ok) > 1 else 0.0
+
+    esc_inst = datos.csv("qmmm/instantaneas_escaneos.csv")
+    fallidas = [(g["xi"].values, g["energia_rel_kcal"].values, nombre) for nombre, g in esc_inst.groupby("instantanea", sort=False)]
+    fig = viz.plot_snapshot_scans((xi_esc, e_esc), fallidas,       # el mismo escaneo del cristal de la sección 8
+                                  title="Desde la conformación equivocada, la reacción no tiene a dónde ir",
+                                  subtitle="Escaneos de ξ. Azul: el cristal minimizado (cima y valle de producto). Rojo: cuatro fotogramas de la MD en los que Asp205 se alejó")
+    viz.mostrar(fig, viz.tabla(df_inst, titulo="Qué pasó en cada conformación",
+                               formatos={"ΔE‡ (kcal/mol)": "{:.1f}", "d(Pγ–O6) TS (Å)": "{:.2f}", "d(Pγ–O3β) TS (Å)": "{:.2f}"},
+                               nota="«—»: no hay estado de transición que medir, porque sin producto estable no hay cima entre dos valles."))
     if len(ok) > 1:
-        print(f"Barrera media = {media:.1f} ± {sd:.1f} kcal/mol (n = {len(ok)})")
-        fig, ax = viz.figure(6.5, 3.8)
-        ax.bar(range(len(ok)), ok["ΔE‡ (kcal/mol)"], color=viz.COLORS["ts"], width=0.55)
-        ax.axhline(media, color=viz.INK, lw=1, ls="--")
-        ax.set_xticks(range(len(ok))); ax.set_xticklabels(ok["instantánea"], rotation=15)
-        ax.set_ylabel("ΔE‡ (kcal/mol)"); ax.set_title("La barrera depende de la conformación de la enzima", loc="left")
-        fig;
-    else:
-        print(f"Solo {len(ok)} conformación con camino completo (barrera {media:.1f} kcal/mol): las demás no llegan a un producto estable (ver abajo).")
-    sin_prod = [r for r in inst["instantaneas"] if r.get("sin_producto_estable")]
-    if sin_prod:
-        print("Instantáneas sin producto estable (la energía sube hasta ξ = 2 Å sin máximo):")
-        for r in sin_prod:
-            print(f"  {r['instantanea']}: E(ξ = {r['xi_max']:.1f}) = {r['escaneo_max_rel_kcal']:.0f} kcal/mol sobre R; d(Asp205 OD1···H–O6) en el reactivo = {r['d_OD1_H_reactivo']:.2f} Å")
+        display(viz.mensaje(f"Barrera media = {media:.1f} ± {sd:.1f} kcal/mol (n = {len(ok)})", "dato"))
 except FileNotFoundError:
-    print("(promedio sobre instantáneas no disponible en estos datos)")
+    display(viz.mensaje("Promedio sobre instantáneas no disponible en estos datos.", "ojo"))
 ''')
 
 md(r"""
@@ -136,11 +143,13 @@ sobre conformaciones reactivas.
 """)
 
 code(r'''
+# @title ⚖️ ¿Y con otro método?
 met = res["etapas"].get("metodos", {})
-for nombre, d in met.items():
-    if isinstance(d, dict):
-        print(f"{nombre:>9s}//PM7: barrera {d['barrera_kcal']:.1f} kcal/mol, ΔE(reacción) {d['dE_reaccion_kcal']:+.1f} kcal/mol")
-print(met.get("nota", ""))
+colores = {"PM7": "azul", "PM6-D3H4": "magenta"}
+items = [(f"{nombre}//PM7", f"{d['barrera_kcal']:.1f}", "kcal/mol de barrera",
+          f"ΔE(reacción) = {d['dE_reaccion_kcal']:+.1f} kcal/mol", colores.get(nombre, "gris"))
+         for nombre, d in met.items() if isinstance(d, dict)]
+viz.tarjetas(items, titulo="Las mismas geometrías, dos hamiltonianos semiempíricos", nota=met.get("nota", ""))
 ''')
 
 md(r"""

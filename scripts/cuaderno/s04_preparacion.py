@@ -41,14 +41,24 @@ Veamos el resultado:
 """)
 
 code(r'''
+# @title 🧰 Qué tiene el sistema preparado
 prep = datos.json_("sistema/preparacion.json")
 solv = prep["sistema_solvatado"]
-print("Fuente:", prep["fuente"])
-print("Bucles modelados (índice, residuos):", prep["bucles_modelados"])
-print("Campo de fuerza:", prep["campo_de_fuerza"])
-print(f"\nSistema solvatado: {solv['n_atoms']:,} átomos, carga total {solv['total_charge']:+.3f} e")
-print("Cargas de los ligandos:", {k: round(v, 2) for k, v in solv["ligand_charges"].items()})
-print("Residuos:", {k: v for k, v in solv["residue_counts"].items() if k in ("WAT", "Na+", "GLC", "ATP", "MG", "K+")})
+cuentas = solv["residue_counts"]
+viz.mostrar(
+    viz.tarjetas([
+        ("átomos en la caja", f"{solv['n_atoms']:,}".replace(",", " "), "", "proteína, ligandos, iones y agua", "azul"),
+        ("moléculas de agua", f"{cuentas.get('HOH', cuentas.get('WAT', 0)):,}".replace(",", " "), "", "caja TIP3P de 10 Å alrededor", "agua"),
+        ("carga total", f"{solv['total_charge']:+.3f}", "e", f"neutralizada con {cuentas.get('Na+', 0)} Na⁺", "violeta"),
+        ("bucles modelados", str(len(prep["bucles_modelados"])), "", "trozos que el cristal no veía", "naranja"),
+    ], titulo="El sistema listo para simular",
+       nota=f"Fuente: {prep['fuente']} · Campo de fuerza: {prep['campo_de_fuerza']}"),
+    viz.tabla(pd.DataFrame(
+        [("ligandos: cargas", ", ".join(f"{k} {v:+.2f}" for k, v in solv["ligand_charges"].items())),
+         ("residuos", ", ".join(f"{k} × {v}" for k, v in cuentas.items() if k in ("HOH", "WAT", "Na+", "GLC", "ATP", "MG", "K+"))),
+         ("bucles (índice, residuos)", "; ".join(str(b) for b in prep["bucles_modelados"]))],
+        columns=["qué", "detalle"]), titulo="En detalle"),
+)
 ''')
 
 md(r"""

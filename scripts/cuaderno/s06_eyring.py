@@ -74,28 +74,44 @@ Muévelo tú mismo con los deslizadores:
 """)
 
 code(r'''
+# @title 🎛️ Explora la ecuación de Eyring
 # 🎛️ Explora la ecuación de Eyring: barrera y temperatura
 interactivo.explorar_eyring()
 ''')
 
 code(r'''
+# @title 🎛️ Dibuja tu propia colina de energía
 # 🎛️ Perfil de energía: barrera (cuesta) y energía de reacción (desnivel entre valles)
 interactivo.explorar_perfil_energia()
 ''')
 
 code(r'''
+# @title 📉 Cada 1.36 kcal/mol, un factor 10
 barreras = np.linspace(5, 30, 200)
-fig, ax = viz.figure(7, 4)
-ax.semilogy(barreras, cin.eyring_rate(barreras), color=viz.COLORS["reactivo"], lw=2)
 kcat = valor("kcat_s", 60.0)
-for dg, texto in [(cin.barrier_from_rate(kcat), f"k_cat de la glucoquinasa (≈{kcat:.0f} s⁻¹)"),
-                  (cin.barrier_from_rate(1e-8), "una reacción que tarda años")]:
-    ax.axvline(dg, color=viz.INK_MUTED, ls="--", lw=1)
-    ax.annotate(f"{texto}\nΔG‡ ≈ {dg:.1f} kcal/mol", (dg, cin.eyring_rate(dg)), xytext=(8, 10), textcoords="offset points",
-                fontsize=9, color=viz.INK_SECONDARY)
-ax.set_xlabel("ΔG‡ (kcal/mol)"); ax.set_ylabel("k (s⁻¹)")
-ax.set_title("Cada 1.36 kcal/mol de barrera, la velocidad cambia 10 veces", loc="left")
-fig;
+fig, ax = viz.figure(10.5, 5.8)
+k_curva = cin.eyring_rate(barreras)
+ax.fill_between(barreras, k_curva.min() / 1e3, k_curva, color=viz._tint(viz.COLORS["reactivo"], 0.9), zorder=1, lw=0)
+ax.semilogy(barreras, k_curva, color=viz.COLORS["reactivo"], lw=2.8, zorder=3)
+puntos = [(cin.barrier_from_rate(kcat), f"la glucoquinasa\nk_cat ≈ {kcat:.0f} s⁻¹", viz.COLORS["ts"], (12, 6), "left"),
+          (cin.barrier_from_rate(1e-8), "una reacción que\ntarda años", viz.INK_SECONDARY, (-16, -10), "right")]
+for dg, texto, color, off, ha in puntos:
+    viz._guide(ax, "v", dg, start=k_curva.min() / 1e3, end=cin.eyring_rate(dg))
+    viz._keypoint(ax, dg, cin.eyring_rate(dg), color, size=11)
+    ax.annotate(f"{texto}\nΔG‡ ≈ {dg:.1f} kcal/mol", (dg, cin.eyring_rate(dg)), xytext=off, textcoords="offset points",
+                ha=ha, va="bottom" if off[1] > 0 else "top", fontsize=11, color=viz.INK)
+# la escalera: 3 escalones de 1.36 kcal/mol desde la barrera de la glucoquinasa
+dg0 = cin.barrier_from_rate(kcat)
+for j in range(3):
+    a, b = dg0 + j * 1.364, dg0 + (j + 1) * 1.364
+    ax.plot([a, b, b], [cin.eyring_rate(a), cin.eyring_rate(a), cin.eyring_rate(b)], color=viz.INK_MUTED, lw=1.2, zorder=4)
+    ax.annotate("÷10", (b, np.sqrt(cin.eyring_rate(a) * cin.eyring_rate(b))), xytext=(4, 0), textcoords="offset points",
+                ha="left", va="center", fontsize=10, color=viz.INK_SECONDARY)
+ax.set_xlim(5, 30); ax.set_ylim(k_curva.min() / 1e3, k_curva.max() * 10)
+viz._finish(ax, "ΔG‡: altura de la colina (kcal/mol)", "k (s⁻¹, escala log)",
+            "Cada 1.36 kcal/mol de barrera, la velocidad cambia 10 veces",
+            "Cada escalón gris sube la colina 1.36 kcal/mol y divide la velocidad entre 10.")
+viz.mostrar(fig)
 ''')
 
 md(r"""

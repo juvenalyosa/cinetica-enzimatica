@@ -37,6 +37,15 @@ def md(text):
 
 
 def code(text):
-    cell = nbf.v4.new_code_cell(text.strip("\n"))
+    """Celda de código oculta: en Colab se ve solo su título (``# @title``) y su resultado.
+
+    El estudiante pulsa ▶ y mira; si tiene curiosidad, puede desplegar el código con doble clic.
+    Los valores que se pueden cambiar van como campos de formulario (``# @param``).
+    """
+    fuente = text.strip("\n")
+    if not fuente.startswith("# @title "):
+        raise ValueError(f"toda celda de código necesita '# @title' en la primera línea:\n{fuente[:80]}")
+    cell = nbf.v4.new_code_cell(fuente)
     cell["id"] = f"celda-{len(CELLS):03d}"
+    cell["metadata"] = {"cellView": "form", "jupyter": {"source_hidden": True}}
     CELLS.append(cell)

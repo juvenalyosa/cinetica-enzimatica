@@ -71,25 +71,36 @@ magnitud y, sobre todo, *tendencias*, no decimales.
 """)
 
 code(r'''
+# @title 🏁 Nuestra barrera frente al experimento
 T = 298.15
 kcat_exp = valor("kcat_s", 60.0)
 dG_qmmm = termo.get(T_ref, {}).get("dG_kcal", ts["barrera_kcal"])
-filas = [("ΔE‡ PM7, una conformación (este cuaderno)", ts["barrera_kcal"]),
-         ("ΔG‡ PM7 + termoquímica armónica (este cuaderno)", dG_qmmm)]
+filas = [("ΔE‡ PM7, una conformación (este cuaderno)", ts["barrera_kcal"], viz.COLORS["reactivo"]),
+         ("ΔG‡ PM7 + termoquímica armónica (este cuaderno)", dG_qmmm, viz.COLORS["ts"])]
 try:
     if len(ok) > 1:
-        filas.append(("ΔE‡ promedio sobre instantáneas de MD (este cuaderno)", media))
+        filas.append(("ΔE‡ promedio sobre instantáneas de MD (este cuaderno)", media, viz.COLORS["reactivo"]))
 except NameError:
     pass
-filas.append(("ΔE‡ QM/MM publicada, Zhang et al. 2009", valor("qmmm_barrier_literature_kcal", np.nan)))
-filas.append(("sitio activo en agua, COSMO (este cuaderno)", agua["barrera_kcal"]))
-filas.append(("experimento: ΔG‡ que implica k_cat", cin.barrier_from_rate(kcat_exp, T)))
-tabla = pd.DataFrame([(n, b, cin.eyring_rate(b, T)) for n, b in filas], columns=["estimación", "barrera (kcal/mol)", "k (s⁻¹) por Eyring"])
-tabla["k (s⁻¹) por Eyring"] = tabla["k (s⁻¹) por Eyring"].map(lambda x: f"{x:.2e}")
-display(tabla.round(1))
-print(f"k_cat experimental ≈ {kcat_exp:.0f} s⁻¹  ({ref['kcat_s']['source']})")
-print("Nuestra barrera y la de Zhang et al. (18.3 kcal/mol, otro programa y otra partición QM/MM) coinciden dentro de 1 kcal/mol;")
-print("ambas sobrestiman la experimental (≈15) en 3-4 kcal/mol, es decir, un factor ~10²-10³ en k. Es lo esperable de un método semiempírico con entorno fijo.")
+filas.append(("ΔE‡ QM/MM publicada, Zhang et al. 2009", valor("qmmm_barrier_literature_kcal", np.nan), viz.PALETTE[6]))
+filas.append(("sitio activo en agua, COSMO (este cuaderno)", agua["barrera_kcal"], viz.INK_MUTED))
+dG_exp = cin.barrier_from_rate(kcat_exp, T)
+etiquetas = {"ΔE‡ PM7, una conformación (este cuaderno)": "ΔE‡ en la enzima (PM7)",
+             "ΔG‡ PM7 + termoquímica armónica (este cuaderno)": "ΔG‡ con vibraciones",
+             "ΔE‡ promedio sobre instantáneas de MD (este cuaderno)": "ΔE‡ promedio (MD)",
+             "ΔE‡ QM/MM publicada, Zhang et al. 2009": "Zhang et al. 2009 (QM/MM)",
+             "sitio activo en agua, COSMO (este cuaderno)": "sitio activo en agua"}
+fig = viz.plot_estimates([(etiquetas.get(n, n), b, c) for n, b, c in filas], reference=dG_exp,
+                         reference_label=f"experimento (k_cat ≈ {kcat_exp:.0f} s⁻¹)", rate_fn=lambda b: cin.eyring_rate(b, T),
+                         title="Los cálculos QM/MM quedan 3–4 kcal/mol por encima del experimento",
+                         subtitle="Cada punto es una estimación de la barrera; a la derecha, la velocidad que implica la ecuación de Eyring")
+filas.append(("experimento: ΔG‡ que implica k_cat", dG_exp, None))
+tabla = pd.DataFrame([(n, b, viz._sci(cin.eyring_rate(b, T))) for n, b, _ in filas], columns=["estimación", "barrera (kcal/mol)", "k (s⁻¹) por Eyring"])
+viz.mostrar(fig, viz.tabla(tabla, formatos={"barrera (kcal/mol)": "{:.1f}"}, titulo="Las mismas estimaciones, en números",
+                           nota=f"k_cat experimental ≈ {kcat_exp:.0f} s⁻¹ ({ref['kcat_s']['source']})."),
+            viz.mensaje("Nuestra barrera y la de Zhang et al. (18.3 kcal/mol, otro programa y otra partición QM/MM) coinciden dentro "
+                        "de 1 kcal/mol; ambas sobrestiman la experimental (≈15) en 3-4 kcal/mol, es decir, un factor ~10²-10³ en k. "
+                        "Es lo esperable de un método semiempírico con entorno fijo.", "idea"))
 ''')
 
 md(r"""

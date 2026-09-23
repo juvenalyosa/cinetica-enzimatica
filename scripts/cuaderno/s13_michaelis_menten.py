@@ -111,23 +111,32 @@ hipérbola aparece sola. Primero la película de las concentraciones:
 """)
 
 code(r'''
+# @title 🎛️ El mecanismo en acción: E + S ⇌ ES → E + P
 # 🎛️ Mueve k1, k-1, k2, [E]0 y [S]0 y observa el pre-estado estacionario y la formación de producto
 interactivo.explorar_mecanismo()
 ''')
 
 code(r'''
-E0, k1, k_1, k2 = 0.05, 1.0, 50.0, 60.0          # µM, µM⁻¹s⁻¹, s⁻¹, s⁻¹ (k2 = k_cat ≈ 60 s⁻¹)
+# @title 🔁 De la simulación a la hipérbola
+k2 = 60  # @param {type:"slider", min:6, max:600, step:6}
+# k2 = k_cat (s⁻¹); prueba 6 y 600 (ejercicio 3)
+E0, k1, k_1 = 0.05, 1.0, 50.0                   # µM, µM⁻¹s⁻¹, s⁻¹
 S = np.array([5, 10, 20, 40, 80, 150, 300, 600, 1200, 2400])       # µM
 v0_sim = cin.initial_rates_from_simulation(E0, S, k1, k_1, k2, t_window=(0.01, 0.1))
 ajuste = cin.fit_michaelis_menten(S, v0_sim)
 teoria = cin.steady_state_parameters(k1, k_1, k2)
 fig = viz.plot_initial_rates_from_ode(S, v0_sim, fit=ajuste)
-fig;
-print(f"K_M ajustada a las velocidades simuladas = {ajuste['km']:.1f} µM   frente a   (k₋₁ + k₂)/k₁ = {teoria['km']:.1f} µM")
-print(f"V_max ajustada = {ajuste['vmax']:.3f} µM/s   frente a   k₂·[E]₀ = {k2 * E0:.3f} µM/s   →   la derivación funciona.")
+viz.mostrar(fig, viz.tarjetas([
+    ("K_M del ajuste", f"{ajuste['km']:.1f}", "µM", "ajustando la hipérbola a las v₀ simuladas", "azul"),
+    ("K_M de la fórmula", f"{teoria['km']:.1f}", "µM", "(k₋₁ + k₂)/k₁", "agua"),
+    ("V_max del ajuste", f"{ajuste['vmax']:.3f}", "µM/s", "meseta de la curva", "azul"),
+    ("V_max de la fórmula", f"{k2 * E0:.3f}", "µM/s", "k₂·[E]₀", "agua"),
+], titulo="¿Coinciden la simulación y la derivación en papel?",
+   nota="Si las parejas coinciden, la derivación funciona: la hipérbola sale sola del mecanismo."))
 ''')
 
 code(r'''
+# @title 🎛️ La hipérbola: mueve V_max y K_M
 # 🎛️ La hipérbola: mueve Vmax y Km
 interactivo.explorar_michaelis_menten()
 ''')
@@ -150,6 +159,7 @@ linealizaciones clásicas.
 """)
 
 code(r'''
+# @title 🔬 Un experimento simulado y su ajuste
 rng = np.random.default_rng(7)
 S_mM = np.array([0.5, 1, 2, 3, 5, 7.5, 10, 15, 20, 30, 40, 60])
 E0_uM = 0.2                                     # enzima en el tubo (µM)
@@ -157,19 +167,27 @@ Km_real = valor("s_half_mm", 7.5)               # tratamos la enzima como hiperb
 Vmax_real = valor("kcat_s", 60.0) * E0_uM       # µM/s
 v_obs = cin.michaelis_menten(S_mM, Vmax_real, Km_real) * (1 + 0.04 * rng.standard_normal(S_mM.size))
 aj = cin.fit_michaelis_menten(S_mM, v_obs)
-fig = viz.plot_michaelis_menten(S_mM, v_obs, fit=aj, title="Curva de saturación de Michaelis–Menten",
-                                subtitle="Datos simulados con ruido del 4 %; línea: ajuste no lineal")
-fig;
-print(f"V_max = {aj['vmax']:.2f} ± {aj['vmax_err']:.2f} µM/s;  K_M = {aj['km']:.2f} ± {aj['km_err']:.2f} mM;  R² = {aj['r2']:.4f}")
+fig = viz.plot_michaelis_menten(S_mM, v_obs, fit=aj, title=f"La enzima llega a la mitad de su máximo con {aj['km']:.1f} mM de sustrato",
+                                subtitle="Datos simulados con ruido del 4 % (puntos) y ajuste no lineal de Michaelis–Menten (línea)")
 kc = cin.kcat_km_from_fit(aj, E0_uM)
-print(f"k_cat = V_max/[E]₀ = {kc['kcat']:.0f} s⁻¹;  k_cat/K_M = {kc['kcat_over_km_molar']:.2e} M⁻¹s⁻¹;  tiempo por recambio = {cin.turnover_time(kc['kcat'])*1000:.0f} ms")
+viz.mostrar(fig, viz.tarjetas([
+    ("V_max", f"{aj['vmax']:.2f}", f"± {aj['vmax_err']:.2f} µM/s", "la meseta: toda la enzima ocupada", "azul"),
+    ("K_M", f"{aj['km']:.2f}", f"± {aj['km_err']:.2f} mM", f"[S] a media velocidad (R² = {aj['r2']:.4f})", "naranja"),
+    ("k_cat = V_max/[E]₀", f"{kc['kcat']:.0f}", "s⁻¹", f"una reacción cada {cin.turnover_time(kc['kcat'])*1000:.0f} ms por enzima", "agua"),
+    ("k_cat/K_M", f"{kc['kcat_over_km_molar']:.2e}", "M⁻¹s⁻¹", "eficiencia cuando hay poco sustrato", "violeta"),
+], titulo="Los cuatro números que salen de la curva"))
 ''')
 
 code(r'''
-fig = viz.plot_linearizations(S_mM, v_obs, subtitle="Las tres rectas dan V_max y K_M por los cortes con los ejes")
-fig;
+# @title 📐 Las tres linealizaciones clásicas
+fig = viz.plot_linearizations(S_mM, v_obs, title="Tres maneras de convertir la hipérbola en una recta",
+                              subtitle="Los cortes con los ejes (puntos grises) dan V_max y K_M; círculos naranjas: los puntos que más distorsionan Lineweaver–Burk")
 lb = cin.linear_fit(*cin.lineweaver_burk(S_mM, v_obs))
-print(f"Lineweaver–Burk: V_max = {1/lb['intercept']:.2f} µM/s, K_M = {lb['slope']/lb['intercept']:.2f} mM   (ajuste no lineal: {aj['vmax']:.2f}, {aj['km']:.2f})")
+viz.mostrar(fig, viz.tarjetas([
+    ("V_max por Lineweaver–Burk", f"{1/lb['intercept']:.2f}", "µM/s", f"ajuste no lineal: {aj['vmax']:.2f}", "gris"),
+    ("K_M por Lineweaver–Burk", f"{lb['slope']/lb['intercept']:.2f}", "mM", f"ajuste no lineal: {aj['km']:.2f}", "gris"),
+], titulo="Lineweaver–Burk frente al ajuste no lineal",
+   nota="Las rectas sirven para visualizar el tipo de comportamiento; para cuantificar se usa el ajuste no lineal."))
 ''')
 
 md(r"""

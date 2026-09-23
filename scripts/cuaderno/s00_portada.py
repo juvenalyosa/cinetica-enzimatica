@@ -81,10 +81,12 @@ calculados y dibuja todo en unos minutos. En modo `completo` reejecuta las simul
 """)
 
 code(r'''
+# @title ⚙️ Preparar el entorno (ejecuta esta celda primero)
 # --- Preparación del entorno (ejecuta esta celda primero) -------------------------------
 import os, sys, subprocess, pathlib
 
-MODO = "rapido"          # "rapido": usa resultados precalculados | "completo": recalcula todo
+MODO = "rapido"  # @param ["rapido", "completo"]
+# "rapido": usa resultados precalculados (minutos) | "completo": recalcula todo (horas)
 
 if not pathlib.Path("enzimas").exists():
     if pathlib.Path("../enzimas").exists():            # ejecutado desde notebooks/
@@ -99,14 +101,16 @@ entorno = colab_setup.instalar(MODO)
 ''')
 
 code(r'''
+# @title 📦 Cargar las herramientas del curso
 # --- Importaciones y estilo gráfico -----------------------------------------------------
 %matplotlib inline
+%config InlineBackend.figure_format = "retina"
 import json
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from enzimas import kinetics as cin, viz, datos, interactivo
+from enzimas import kinetics as cin, viz, datos, interactivo, visor3d
 viz.apply_style()
 
 def leer(nombre):

@@ -71,24 +71,33 @@ alto es una primera estimación del estado de transición.
 """)
 
 code(r'''
+# @title ⚗️ Reactivo y producto dentro de la enzima
 if MODO == "completo":
     subprocess.run([sys.executable, "scripts/03_qmmm_reaccion.py"], check=True)
 
 res = datos.json_("qmmm/resumen.json")
 R, P = res["etapas"]["reactivo"], res["etapas"]["producto"]
-print("Reactivo:  d(Pγ–O6) = %.2f Å, d(Pγ–O3β) = %.2f Å, ξ = %+.2f Å" % (R["d_PG_O6"], R["d_PG_O3B"], R["xi"]))
-print("Producto:  d(Pγ–O6) = %.2f Å, d(Pγ–O3β) = %.2f Å, ξ = %+.2f Å" % (P["d_PG_O6"], P["d_PG_O3B"], P["xi"]))
-print("Protón del O6: en el reactivo d(O6–H) = %.2f Å; en el producto d(OD1–H) = %.2f Å (Asp205 protonado)" % (R["d_O6_H"], P["d_OD1_H"]))
-print("ΔE(reacción) = %+.1f kcal/mol dentro de la enzima (entorno fijo, PM7)" % P["dE_reaccion_kcal"])
+viz.tarjetas(
+    [("Reactivo · ξ", f"{R['xi']:+.2f}".replace("-", "−"), "Å",
+      f"Pγ–O3β {R['d_PG_O3B']:.2f} Å (enlazado) · Pγ–O6 {R['d_PG_O6']:.2f} Å (libre)", "azul"),
+     ("Producto · ξ", f"{P['xi']:+.2f}", "Å",
+      f"Pγ–O6 {P['d_PG_O6']:.2f} Å (enlazado) · Pγ–O3β {P['d_PG_O3B']:.2f} Å (libre)", "agua"),
+     ("El protón del O6", f"{P['d_OD1_H']:.2f}", "Å",
+      f"en el producto está en Asp205 (en el reactivo, O6–H = {R['d_O6_H']:.2f} Å)", "violeta"),
+     ("ΔE de reacción", f"{P['dE_reaccion_kcal']:+.1f}", "kcal/mol", "cuesta arriba dentro de la enzima (PM7, entorno fijo)", "naranja")],
+    titulo="Los dos extremos de la reacción, relajados en la enzima")
 ''')
 
 code(r'''
+# @title 📈 El perfil de energía de la reacción
 escaneo = datos.csv("qmmm/escaneo.csv")
 xi_esc = np.r_[R["xi"], escaneo["xi"].values]                   # el perfil arranca en el reactivo relajado (E = 0)
 e_esc = np.r_[0.0, escaneo["energia_rel_kcal"].values]
 fig = viz.plot_energy_profile(xi_esc, e_esc, relative=False, xlabel="ξ = d(Pγ–O3β) − d(Pγ–O6)  (Å)",
-                              ts_index=int(np.argmax(e_esc)), title="Escaneo relajado de la transferencia de fosforilo",
-                              subtitle="PM7 en el campo de la enzima; el máximo es una primera estimación del TS")
+                              ts_index=int(np.argmax(e_esc)), annotate_states=True,
+                              state_names=("reactivo\nfosfato en el ATP", "cima: 1.ª estimación del TS", "producto\nfosfato en la glucosa"),
+                              title=f"Para pasar el fosfato hay que subir una colina de {e_esc.max():.0f} kcal/mol",
+                              subtitle="Escaneo relajado: se fija ξ en cada punto y se relaja todo lo demás (PM7 en el campo de la enzima)")
 fig;
 ''')
 
@@ -101,10 +110,27 @@ md(r"""
 > las dos direcciones.
 """)
 
+md(r"""
+### 🎬 Mírala ocurrir
+
+Ahora la película: los átomos a la izquierda y, a la derecha, el **perfil de energía con un punto
+amarillo que sigue a la película**. Pulsa ▶ o arrastra la barra. Fíjate en tres cosas:
+
+1. El enlace **rosa** (Pγ–O3β, del ATP) se adelgaza y se vuelve discontinuo: **se está rompiendo**.
+2. El enlace **verde agua** (Pγ–O6, hacia la glucosa) aparece y se engrosa: **se está formando**.
+3. En la cima de la gráfica (el estado de transición) los dos están a medias: el fósforo está
+   **entre** los dos oxígenos.
+
+Solo se dibujan enlaces reales: los de la topología del modelo, más estos cuatro que cambian, con un
+grosor proporcional a su orden de enlace (enteros si están formados, discontinuos si están a medio
+formar o romper). Las líneas verdes finas son la coordinación del Mg²⁺, que no es un enlace covalente.
+La película sigue el camino de mínima energía que se calcula en la sección 9, desde el reactivo
+relajado hasta el producto.
+""")
+
 code(r'''
-# Animación del escaneo: el fosfato viaja del ATP a la glucosa
-simbolos, cuadros, comentarios = datos.leer_xyz_multiple("qmmm/escaneo.xyz")
-viz.view_frames(cuadros, simbolos, interval_ms=300)
+# @title 🎬 La reacción en movimiento, sincronizada con su energía
+visor3d.pelicula_reaccion("enzima")
 ''')
 
 md(r"""

@@ -67,20 +67,28 @@ Cuanto mayor la barrera, más sensible a la temperatura.
 """)
 
 code(r'''
+# @title 🎛️ Entalpía, entropía y temperatura
 # 🎛️ Entalpía y entropía de activación: mira el gráfico de Eyring y k(T)
 interactivo.explorar_temperatura()
 ''')
 
 code(r'''
+# @title 🌡️ Arrhenius y Eyring con datos
 T_K = np.array([283.15, 288.15, 293.15, 298.15, 303.15, 308.15, 313.15])
 dH, dS = 12.0, -8.0                       # kcal/mol, cal/mol/K (ilustrativos)
 k_T = np.array([cin.eyring_rate(dH - T * dS / 1000, T) for T in T_K]) * (1 + 0.03 * rng.standard_normal(T_K.size))
 aj_arr, aj_eyr = cin.fit_arrhenius(T_K, k_T), cin.fit_eyring(T_K, k_T)
-fig, axes = viz.figure(11, 4, ncols=2)
-viz.plot_arrhenius(T_K, k_T, fit=aj_arr, ax=axes[0]); viz.plot_eyring(T_K, k_T, fit=aj_eyr, ax=axes[1])
-fig;
-print(f"Arrhenius: E_a = {aj_arr['ea_kcal']:.1f} kcal/mol.   Eyring: ΔH‡ = {aj_eyr['delta_h_kcal']:.1f} kcal/mol, ΔS‡ = {aj_eyr['delta_s_cal']:.1f} cal/mol/K, ΔG‡(25 °C) = {aj_eyr['delta_g_kcal']:.1f} kcal/mol")
-print("Relación entre ambas: E_a ≈ ΔH‡ + RT (0.6 kcal/mol a 25 °C).")
+fig, axes = viz.figure(14, 5.8, ncols=2)
+viz.plot_arrhenius(T_K, k_T, fit=aj_arr, ax=axes[0], title="Arrhenius: ln k frente a 1000/T")
+viz.plot_eyring(T_K, k_T, fit=aj_eyr, ax=axes[1], title="Eyring: ln(k/T) frente a 1000/T")
+viz._fig_title(fig, "Más calor, más velocidad: la pendiente mide cuánto",
+               "Siete temperaturas de 10 a 40 °C (eje superior). Una recta empinada = una reacción muy sensible a la temperatura.")
+viz.mostrar(fig, viz.tarjetas([
+    ("E_a (Arrhenius)", f"{aj_arr['ea_kcal']:.1f}", "kcal/mol", "cuánto sube k al calentar", "naranja"),
+    ("ΔH‡ (Eyring)", f"{aj_eyr['delta_h_kcal']:.1f}", "kcal/mol", "energía que hay que aportar", "naranja"),
+    ("ΔS‡ (Eyring)", f"{aj_eyr['delta_s_cal']:.1f}", "cal/mol/K", "negativa: el TS es más ordenado", "violeta"),
+    ("ΔG‡ (25 °C)", f"{aj_eyr['delta_g_kcal']:.1f}", "kcal/mol", "ΔH‡ − TΔS‡", "azul"),
+], titulo="Lo que dicen las dos rectas", nota="Relación entre ambas: E_a ≈ ΔH‡ + RT (0.6 kcal/mol a 25 °C)."))
 ''')
 
 md(r"""
@@ -119,6 +127,7 @@ $$v = \frac{v_{\max}}{1 + {\color{#eb6834}{10^{\,pK_1 - \mathrm{pH}}}} + {\color
 """)
 
 code(r'''
+# @title 🎛️ La campana de pH
 # 🎛️ pKa de la base y del ácido: la campana de pH
 interactivo.explorar_ph()
 ''')

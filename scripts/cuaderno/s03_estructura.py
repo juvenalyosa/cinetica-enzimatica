@@ -41,15 +41,14 @@ Un enlace P–O mide 1.6 Å: a 2.7 Å el O6 y el Pγ están **muy cerca, pero a�
 
 [[fig:sitio_activo | Esquema del sitio activo de la glucoquinasa en el cristal 3FGU con las distancias clave]]
 
-Gira la molécula con el ratón:
+Explora la enzima real, átomo por átomo: **arrastra** para girarla, usa la **rueda** para acercarte
+y los botones para ver el **sitio activo** o la **superficie**:
 """)
 
 code(r'''
+# @title 🧬 La glucoquinasa en 3D (gírala con el ratón)
 pdb_cristal = pathlib.Path("data/raw/3FGU.pdb").read_text()
-vista = viz.view_complex(pdb_cristal, ligand_resnames=("BGC", "ANP"), ion_resnames=("MG", "K"),
-                         highlight_residues=(("ASP", 205), ("LYS", 169), ("THR", 228), ("SER", 151)),
-                         label_map={205: "Asp205", 169: "Lys169", 228: "Thr228", 151: "Ser151"})
-vista
+visor3d.complejo_cristal(pdb_cristal)
 ''')
 
 md(r"""
@@ -57,6 +56,7 @@ Y comprobemos las dos distancias clave directamente en el archivo del cristal:
 """)
 
 code(r'''
+# @title 📏 Distancias clave en el cristal
 # Distancias clave en el cristal (Å): ¿está todo listo para reaccionar?
 def coords_pdb(texto, resn, name, resi=None):
     for l in texto.splitlines():

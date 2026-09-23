@@ -59,7 +59,7 @@ def test_style_and_palette():
     assert matplotlib.rcParams["axes.facecolor"] == viz.SURFACE
     assert not matplotlib.rcParams["axes.spines.top"]
     assert not matplotlib.rcParams["legend.frameon"]
-    assert matplotlib.rcParams["lines.linewidth"] == 2.0
+    assert matplotlib.rcParams["lines.linewidth"] == 2.4
     cycle = matplotlib.rcParams["axes.prop_cycle"].by_key()["color"]
     assert [c.lower() for c in cycle] == viz.PALETTE
     assert len(viz.PALETTE) == 8 and viz.PALETTE[0] == "#2a78d6" and viz.PALETTE[-1] == "#e34948"

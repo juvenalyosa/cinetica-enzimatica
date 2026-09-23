@@ -69,20 +69,24 @@ inicial de cada una:
 """)
 
 code(r'''
+# @title 📈 Curvas de progreso y velocidad inicial
 # Curva de progreso simulada: producto frente a tiempo para tres concentraciones de sustrato
 E0, k1, k_1, k2 = 0.05, 1.0, 50.0, 60.0          # µM, µM⁻¹s⁻¹, s⁻¹, s⁻¹
-fig, ax = viz.figure(7.5, 4.2)
-for S0, color in zip((50, 200, 1000), viz.sequential_blue(3)):
-    sim = cin.simulate_mechanism(e0=E0, s0=S0, k1=k1, k_minus1=k_1, k2=k2, t_end=40.0)
-    ax.plot(sim["t"], sim["P"], color=color, lw=2, label=f"[S]₀ = {S0} µM")
+curvas = []
+for S0 in (50, 200, 1000):
+    sim = cin.simulate_mechanism(e0=E0, s0=S0, k1=k1, k_minus1=k_1, k2=k2, t_end=150.0, n_points=4000)
     ventana = (sim["t"] > 0.02) & (sim["t"] < 1.0)
     pend = cin.linear_fit(sim["t"][ventana], sim["P"][ventana])["slope"]
-    ax.plot([0, 8], [0, 8 * pend], color=viz.INK_MUTED, ls="--", lw=1)
-    ax.annotate(f"v₀ = {pend:.2f} µM/s", (8, 8 * pend), xytext=(6, 0), textcoords="offset points", fontsize=9, color=viz.INK_SECONDARY)
-ax.set_xlabel("Tiempo (s)"); ax.set_ylabel("Producto (µM)"); ax.legend()
-ax.set_title("Curva de progreso: la pendiente inicial es la velocidad v₀", loc="left")
-fig;
-print("Con más sustrato la pendiente inicial es mayor, pero no proporcionalmente. Ese 'no proporcionalmente' es toda la cinética enzimática.")
+    curvas.append((sim["t"], sim["P"], pend, f"[S]₀ = {S0} µM"))
+fig = viz.plot_progress_curves(curvas, title="La pendiente inicial es la velocidad v₀",
+                               subtitle="Con 50, 200 y 1000 µM de sustrato. Discontinuas: las tangentes al inicio. La curva se dobla cuando el sustrato se agota")
+v = [c[2] for c in curvas]
+viz.mostrar(fig, viz.tarjetas(
+    [("v₀ con 50 µM", f"{v[0]:.2f}", "µM/s", None, "azul"),
+     ("v₀ con 200 µM", f"{v[1]:.2f}", "µM/s", f"4 × más sustrato → × {v[1] / v[0]:.1f} en v₀", "azul"),
+     ("v₀ con 1000 µM", f"{v[2]:.2f}", "µM/s", f"20 × más sustrato → × {v[2] / v[0]:.1f} en v₀", "azul")],
+    nota="Con más sustrato la pendiente inicial es mayor, pero no proporcionalmente. "
+         "Ese «no proporcionalmente» es toda la cinética enzimática."))
 ''')
 
 md(r"""

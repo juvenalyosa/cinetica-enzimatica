@@ -94,11 +94,11 @@ $$v = \frac{v_{\max}}{1 + 10^{pK_1 - \mathrm{pH}} + 10^{\mathrm{pH} - pK_2}}$$
 
 **Para empezar**
 
-1. Cambia `umbral` en la sección 5 a 3.0 y 4.0 Å. ¿Cómo cambia la fracción de conformaciones de
+1. Mueve el deslizador `umbral` de la sección 5 a 3.0 y a 4.0 Å y vuelve a ejecutar la celda. ¿Cómo cambia la fracción de conformaciones de
    ataque cercano? ¿Qué pasaría con *k*<sub>cat</sub> si la enzima no cerrara sus dominios?
 2. Con el explorador de Eyring, averigua cuánto tendría que bajar la barrera para multiplicar
    *k*<sub>cat</sub> por 1000. Compáralo con la diferencia entre el sitio activo en agua y en la enzima.
-3. En la sección 13, cambia `k2` a 6 s⁻¹ y a 600 s⁻¹. ¿Cómo cambian K<sub>M</sub> y V<sub>max</sub>?
+3. En la sección 13, mueve el deslizador `k2` a 6 s⁻¹ y a 600 s⁻¹ y vuelve a ejecutar la celda. ¿Cómo cambian K<sub>M</sub> y V<sub>max</sub>?
    ¿Cuándo K<sub>M</sub> ≈ K<sub>d</sub> = k<sub>−1</sub>/k<sub>1</sub>?
 
 **Para profundizar**
@@ -123,7 +123,16 @@ $$v = \frac{v_{\max}}{1 + 10^{pK_1 - \mathrm{pH}} + 10^{\mathrm{pH} - pK_2}}$$
 """)
 
 code(r'''
-for r in ref.get("references", []):
-    print("•", r)
-print("\nHerramientas QM/MM adaptadas de la suite Leonardo (Juvenal Yosa, MIT): https://github.com/juvenalyosa/Leonardo")
+# @title 📚 Referencias
+from IPython.display import HTML
+import html as _html
+refs = ref.get("references", [])
+items = "".join(f'<li style="margin:0 0 8px 0;padding-left:4px">{_html.escape(r)}</li>' for r in refs)
+viz.mostrar(HTML(
+    f'<div style="font-family:Figtree,\'Avenir Next\',\'Segoe UI\',Roboto,Arial,sans-serif;background:{viz.SURFACE};'
+    f'border:1px solid {viz.GRID};border-radius:18px;padding:18px 22px;max-width:960px;color:{viz.INK_SECONDARY};font-size:14px;line-height:1.45">'
+    f'<div style="font-size:16px;font-weight:650;color:{viz.INK};margin-bottom:10px">📚 Fuentes de los datos del curso</div>'
+    f'<ol style="margin:0;padding-left:22px">{items}</ol>'
+    f'<div style="margin-top:12px;font-size:13px;color:{viz.INK_MUTED}">Herramientas QM/MM adaptadas de la suite Leonardo (Juvenal Yosa, MIT): '
+    f'<a href="https://github.com/juvenalyosa/Leonardo" style="color:{viz.PALETTE[0]}">github.com/juvenalyosa/Leonardo</a></div></div>'))
 ''')

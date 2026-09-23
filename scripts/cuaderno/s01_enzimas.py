@@ -75,14 +75,21 @@ Todo lo que sigue se compara con estos valores, tomados de artículos originales
 """)
 
 code(r'''
+# @title 📋 Los números de la glucoquinasa medidos en el laboratorio
 filas = []
 for k, v in ref.items():
     if isinstance(v, dict) and "value" in v:
-        filas.append((v.get("label", k), v["value"], v.get("unit", ""), v.get("conditions", ""), v.get("source", "")))
+        valor_txt = v["value"]
+        if isinstance(valor_txt, (int, float)) and abs(valor_txt) >= 1e5:  # 1.1e12 → 1.1 × 10¹²
+            m, e = f"{valor_txt:.1e}".split("e")
+            valor_txt = f"{m} × 10" + str(int(e)).translate(str.maketrans("0123456789-", "⁰¹²³⁴⁵⁶⁷⁸⁹⁻"))
+        filas.append((v.get("label", k), valor_txt, v.get("unit", ""), v.get("conditions", ""), v.get("source", "")))
 tabla = pd.DataFrame(filas, columns=["parámetro", "valor", "unidad", "condiciones", "fuente"])
-pd.set_option("display.max_colwidth", 90)
-display(tabla)
-print(ref.get("notes", ""))
+viz.mostrar(
+    viz.tabla(tabla, titulo="La glucoquinasa humana en el laboratorio",
+              nota="Cada número viene con sus condiciones y su fuente: distintos laboratorios miden valores algo distintos."),
+    viz.mensaje(ref.get("notes", ""), tipo="dato", titulo="Nota sobre los datos") if ref.get("notes") else None,
+)
 ''')
 
 md(r"""

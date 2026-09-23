@@ -35,3 +35,13 @@ def test_cuaderno_incrusta_imagenes():
     assert texto.count("data:image/png;base64,") >= len(_referencias())
     secciones = [c.source.splitlines()[0] for c in nb.cells if c.cell_type == "markdown" and c.source.startswith("## ")]
     assert len(secciones) == 17
+
+
+def test_celdas_de_codigo_ocultas_con_titulo():
+    import nbformat
+    nb = nbformat.read(str(ROOT / "notebooks" / "Cinetica_Enzimatica_Glucoquinasa.ipynb"), as_version=4)
+    for c in nb.cells:
+        if c.cell_type == "code":
+            assert c.source.startswith("# @title "), c.source[:60]
+            assert c.metadata.get("cellView") == "form"
+            assert c.metadata.get("jupyter", {}).get("source_hidden") is True

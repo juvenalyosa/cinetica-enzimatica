@@ -61,6 +61,8 @@ enzimas/     paquete Python
    kinetics.py      leyes de velocidad, ajustes, simulación del mecanismo, Eyring, Dixon,
                     Cheng-Prusoff y valores de referencia de la glucoquinasa con fuentes
    interactivo.py   exploradores interactivos con deslizadores (ipywidgets)
+   visor3d.py       visores 3D (3Dmol.js): la enzima, la reacción sincronizada con su perfil de energía,
+                    el modo imaginario y la película de la MD; enlaces de la topología, no por distancia
    viz.py           gráficos y visores 3D con un estilo único
    glucoquinasa.py  modelo QM/MM de la reacción (PM7 + Amber, NEB, dímero, frecuencias)
    qmmm_mopac.py    interfaz MOPAC (SADDLE = QST2, TS, FORCETS, IRC), de la suite Leonardo
@@ -70,7 +72,8 @@ enzimas/     paquete Python
    colab_setup.py   instalación en Colab
 scripts/     01_preparar_sistema.py, 02_dinamica_molecular.py, 03_qmmm_reaccion.py,
              03b/03c (sitio activo en agua), 03d (termoquímica y método), 03e (instantáneas de MD),
-             04_ilustraciones.py (dibujos del curso, SVG → PNG),
+             03f (perfiles de las instantáneas), 04_ilustraciones.py (dibujos del curso, SVG → PNG),
+             05_datos_visor.py (topología QM y película de la MD para los visores 3D),
              construir_notebook.py (genera el notebook a partir de cuaderno/sNN_*.py)
    cuaderno/        el texto y las celdas del curso, un archivo por sección
    ilustraciones/   las ilustraciones, una función por dibujo (lienzo.py = estilo común)
@@ -81,7 +84,9 @@ tests/       pytest
 
 ## Cómo editar el curso
 
-El notebook no se edita a mano: se genera.
+El notebook no se edita a mano: se genera. Todas las celdas de código son formularios de Colab
+(`# @title`): el estudiante ve solo el título y el resultado, y los valores que puede cambiar
+aparecen como deslizadores (`# @param`).
 
 ```bash
 python scripts/04_ilustraciones.py     # redibuja assets/ilustraciones (requiere rsvg-convert)

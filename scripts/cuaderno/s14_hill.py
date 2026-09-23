@@ -91,31 +91,43 @@ Mueve *n* y S<sub>0.5</sub>, y compara con la hipérbola:
 """)
 
 code(r'''
+# @title 🎛️ Sigmoide frente a hipérbola
 # 🎛️ Mueve n y S0.5: compara con la hipérbola y mira la ventana 10 %–90 %
 interactivo.explorar_hill()
 ''')
 
 code(r'''
+# @title 🩸 La glucoquinasa en el rango de glucosa de la sangre
 S_g = np.linspace(0.01, 30, 300)
 s_half, n_h = valor("s_half_mm", 7.5), valor("hill_n", 1.7)
 fig = viz.plot_hill_vs_mm(S_g, cin.michaelis_menten(S_g, 1.0, s_half), cin.hill(S_g, 1.0, s_half, n_h), n_hill=n_h, s_half=s_half,
-                          ylabel="v₀ / V_max", title="Glucoquinasa: sigmoide (Hill) frente a hipérbola",
-                          subtitle="Entre 4 y 10 mM de glucosa (el rango fisiológico) la sigmoide es mucho más sensible")
-ax = fig.axes[0]; ax.axvspan(4, 7, color=viz.GRID, alpha=0.6, zorder=0)
-ax.annotate("glucosa en sangre\nen ayunas (4–7 mM)", (5.5, 0.05), ha="center", fontsize=9, color=viz.INK_SECONDARY)
-fig;
+                          ylabel="v₀ / V_max", title="En el rango de la sangre, la glucoquinasa responde como un interruptor",
+                          subtitle="Entre 4 y 10 mM de glucosa (el rango fisiológico) la sigmoide es mucho más sensible que la hipérbola")
+fig.set_size_inches(10.5, 5.8)
+ax = fig.axes[0]
+viz._kband(ax, 4, 7, "glucosa en sangre\nen ayunas (4–7 mM)", color=viz._tint(viz.COLORS["ts"], 0.9), y_text=0.97)
 s10, s90 = cin.substrate_at_fraction(1.0, s_half, n_h, 0.1), cin.substrate_at_fraction(1.0, s_half, n_h, 0.9)
-print(f"Con n = {n_h}: del 10 % al 90 % de V_max entre {s10:.1f} y {s90:.1f} mM (factor {s90/s10:.0f}); con n = 1 haría falta un factor 81.")
+viz.mostrar(fig, viz.tarjetas([
+    ("S₀.₅", f"{s_half:g}", "mM", "glucosa a media actividad", "naranja"),
+    ("coeficiente de Hill", f"{n_h:g}", "", "n > 1: sigmoide", "naranja"),
+    ("del 10 % al 90 %", f"{s10:.1f} → {s90:.1f}", "mM", f"[S] × {s90/s10:.0f}", "naranja"),
+    ("con n = 1", "× 81", "", "la hipérbola necesitaría mucho más", "azul"),
+], titulo="El interruptor de la glucoquinasa en números"))
 ''')
 
 code(r'''
+# @title 📐 Ajuste de Hill y gráfico de Hill
 # Ajuste de Hill a datos simulados y gráfico de Hill (la pendiente es n)
 S_h = np.array([1, 2, 3, 4, 5, 6, 7.5, 9, 11, 14, 18, 25, 35, 50])
 v_h = cin.hill(S_h, 10.0, s_half, n_h) * (1 + 0.03 * rng.standard_normal(S_h.size))
 ajh = cin.fit_hill(S_h, v_h)
-print(f"Ajuste de Hill: V_max = {ajh['vmax']:.2f}, S_0.5 = {ajh['s_half']:.2f} mM, n = {ajh['n']:.2f} ± {ajh['n_err']:.2f}")
-fig = viz.plot_hill_plot(S_h, v_h, ajh["vmax"], subtitle="log[v/(V_max − v)] frente a log[S]: la pendiente es el coeficiente de Hill")
-fig;
+fig = viz.plot_hill_plot(S_h, v_h, ajh["vmax"], title=f"Los datos suben más empinados que la referencia: n = {ajh['n']:.2f}",
+                         subtitle="log[v/(V_max − v)] frente a log[S]: la pendiente es el coeficiente de Hill; la línea discontinua es n = 1")
+viz.mostrar(fig, viz.tarjetas([
+    ("V_max", f"{ajh['vmax']:.2f}", "", "meseta del ajuste", "azul"),
+    ("S₀.₅", f"{ajh['s_half']:.2f}", "mM", "glucosa a media actividad", "naranja"),
+    ("n (Hill)", f"{ajh['n']:.2f}", f"± {ajh['n_err']:.2f}", "n > 1: cooperatividad positiva", "naranja"),
+], titulo="Ajuste de Hill a datos simulados con 3 % de ruido"))
 ''')
 
 md(r"""
@@ -129,28 +141,46 @@ En la analogía: el interruptor se desplaza a la derecha o a la izquierda. Con l
 """)
 
 code(r'''
+# @title 🧬 Mutantes GCK‑MODY: el interruptor se desplaza
 mut = ref.get("mutants", [])
 if mut:
     S_g = np.linspace(0.01, 30, 300)
     elegidos = [m for m in mut if m["name"] in ("V244G", "G223S", "I110N", "W99L", "M197I")]
     curvas = [("silvestre", s_half, n_h, 1.0)] + [(m["name"], m["s_half_mm"], m.get("hill_n", n_h), m.get("kcat_rel", 1.0)) for m in elegidos]
-    fig, ax = viz.figure(8, 5.2)
+    fig, ax = viz.figure(11.5, 6.4)
+    viz._kband(ax, 4, 7, color=viz._tint(viz.COLORS["ts"], 0.9))
+    etiquetas = []
     for (nombre, s05, nn, krel), color in zip(curvas, [viz.INK] + list(viz.PALETTE[: len(elegidos)])):
-        ax.plot(S_g, krel * cin.hill(S_g, 1.0, s05, nn), color=color, lw=2, label=f"{nombre}: S₀.₅ = {s05:g} mM, k_cat ×{krel:.2f}")
-    ax.axvline(5.0, color=viz.INK_MUTED, ls="--", lw=1)
-    ax.annotate("5 mM de glucosa", (5.0, 0.02), xytext=(4, 0), textcoords="offset points", fontsize=9, color=viz.INK_SECONDARY)
-    ax.set_xlabel("[glucosa] (mM)"); ax.set_ylabel("actividad relativa a V_max silvestre")
-    ax.legend(fontsize=8, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.18), frameon=False)
-    ax.set_title("Mutantes de la glucoquinasa: el interruptor se desplaza", loc="left")
-    fig;
+        y = krel * cin.hill(S_g, 1.0, s05, nn)
+        ax.plot(S_g, y, color=color, lw=3.2 if nombre == "silvestre" else 2.4, zorder=4 if nombre == "silvestre" else 3,
+                label=f"{nombre}: S₀.₅ = {s05:g} mM, k_cat ×{krel:.2f}")
+        y5 = krel * cin.hill(5.0, 1.0, s05, nn)
+        ax.plot([5.0], [y5], "o", ms=8, mfc=color, mec="white", mew=1.6, zorder=6)
+        etiquetas.append([y[-1], nombre])
+    # etiquetas directas al final de cada curva, separadas para que no se pisen
+    etiquetas.sort()
+    y_max = max(e[0] for e in etiquetas)
+    for j in range(1, len(etiquetas)):
+        etiquetas[j][0] = max(etiquetas[j][0], etiquetas[j - 1][0] + 0.06 * y_max)
+    for y_lab, nombre in etiquetas:
+        ax.annotate(nombre, (S_g[-1], y_lab), xytext=(6, 0), textcoords="offset points", ha="left", va="center",
+                    fontsize=10.5, color=viz.INK, fontweight="semibold" if nombre == "silvestre" else "normal",
+                    annotation_clip=False)
+    viz._guide(ax, "v", 5.0, color=viz.INK_SECONDARY)
+    ax.annotate("5 mM (franja: glucosa en ayunas, 4–7 mM)\ncada punto: la actividad con la que\nel páncreas «ve» la glucosa", (5.0, 0.0), xytext=(96, 14),
+                textcoords="offset points", ha="left", va="bottom", fontsize=10.5, color=viz.INK_SECONDARY)
+    ax.set_xlim(0, 30); ax.set_ylim(bottom=0)
+    viz._finish(ax, "[glucosa] (mM)", "actividad relativa a V_max silvestre",
+                "Cada mutación desplaza el interruptor de la insulina",
+                "Curvas de Hill con los valores publicados: a la derecha o más abajo = el páncreas «ve» menos glucosa (GCK‑MODY)")
+    ax.legend(fontsize=10, ncol=2, loc="upper center", bbox_to_anchor=(0.5, -0.13), frameon=False)
     tabla = pd.DataFrame([(m["name"], m["kind"], m["s_half_mm"], m.get("hill_n"), m.get("kcat_s"),
                            round(m.get("kcat_rel", 1.0) * cin.hill(5.0, 1.0, m["s_half_mm"], m.get("hill_n", n_h)), 3)) for m in mut],
                          columns=["mutante", "fenotipo", "S₀.₅ (mM)", "n", "k_cat (s⁻¹)", "actividad a 5 mM (rel.)"])
     tabla.loc[len(tabla)] = ["silvestre", "-", s_half, n_h, valor("kcat_s"), round(cin.hill(5.0, 1.0, s_half, n_h), 3)]
-    display(tabla)
-    print("Fuente:", ref.get("mutants_source", ""))
+    viz.mostrar(fig, viz.tabla(tabla, titulo="Los mutantes, uno por uno", nota="Fuente: " + ref.get("mutants_source", "")))
 else:
-    print("(sin datos de mutantes en la tabla de referencia)")
+    viz.mostrar(viz.mensaje("Sin datos de mutantes en la tabla de referencia.", tipo="ojo"))
 ''')
 
 md(r"""
