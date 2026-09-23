@@ -88,13 +88,23 @@ import os, sys, subprocess, pathlib
 MODO = "rapido"  # @param ["rapido", "completo"]
 # "rapido": usa resultados precalculados (minutos) | "completo": recalcula todo (horas)
 
-if not pathlib.Path("enzimas").exists():
-    if pathlib.Path("../enzimas").exists():            # ejecutado desde notebooks/
-        os.chdir("..")
-    else:                                              # Google Colab: clonar el repositorio
-        subprocess.run(["git", "clone", "-q", "https://github.com/juvenalyosa/cinetica-enzimatica.git"], check=True)
-        os.chdir("cinetica-enzimatica")
-sys.path.insert(0, os.getcwd())
+REPO = "https://github.com/juvenalyosa/cinetica-enzimatica.git"
+if "google.colab" in sys.modules:
+    # En Colab: descargar el curso o, si ya estaba de una sesión anterior, ponerlo al día con la última versión
+    destino = pathlib.Path("/content/cinetica-enzimatica")
+    if destino.exists():
+        subprocess.run(["git", "-C", str(destino), "fetch", "-q", "origin"], check=True)
+        subprocess.run(["git", "-C", str(destino), "reset", "-q", "--hard", "origin/main"], check=True)
+    else:
+        subprocess.run(["git", "clone", "-q", REPO, str(destino)], check=True)
+    os.chdir(destino)
+elif not pathlib.Path("enzimas").exists() and pathlib.Path("../enzimas").exists():
+    os.chdir("..")                                     # ejecutado desde notebooks/ en Jupyter
+if os.getcwd() not in sys.path:
+    sys.path.insert(0, os.getcwd())
+# si la celda se vuelve a ejecutar, olvidar la versión del paquete cargada antes
+for nombre in [m for m in sys.modules if m == "enzimas" or m.startswith("enzimas.")]:
+    del sys.modules[nombre]
 
 from enzimas import colab_setup
 entorno = colab_setup.instalar(MODO)
