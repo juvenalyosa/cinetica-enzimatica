@@ -107,7 +107,7 @@ $$v = \frac{v_{\max}}{1 + 10^{pK_1 - \mathrm{pH}} + 10^{\mathrm{pH} - pK_2}}$$
    ¿Qué error cometes si ignoras la cooperatividad? ¿Qué mutante de la tabla dejaría de liberar
    insulina a 5 mM?
 5. Diseña un experimento (concentraciones de S e I) que distinga un inhibidor competitivo de uno
-   mixto con K<sub>i</sub>′ = 3K<sub>i</sub>. Usa `cin.fit_inhibition` y el gráfico de Dixon para comprobarlo.
+   mixto con K<sub>i</sub>′ = 3K<sub>i</sub>. Para comprobarlo, añade una celda nueva (botón «+ Código») y usa `cin.fit_inhibition` y el gráfico de Dixon.
 6. Con la termoquímica de la sección 10, ¿cuánto cambia ΔG‡ entre 25 y 37 °C? ¿Qué factor en
    *k* supone? Compáralo con lo que predice el explorador de temperatura.
 
