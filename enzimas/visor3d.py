@@ -376,13 +376,74 @@ def complejo_cristal(pdb_texto=None):
     # misma puesta en escena que los demás visores: la hendidura mira a la cámara
     R_, o_ = _orientacion(_leer_pdb("\n".join(lineas)), ("BGC", "O6"), ("ANP", "N3B"), de_frente=True)
     lineas = _pdb_girado(lineas, R_, o_)
-    config = dict(tipo="complejo", titulo="La glucoquinasa humana (cristal 3FGU)",
+    config = dict(distancias=_distancias_cristal(lineas), giro_sitio=_giro_sitio(lineas), tipo="complejo", titulo="La glucoquinasa humana (cristal 3FGU)",
                   subtitulo="Arrastra para girar · rueda para acercar · botones para cambiar la vista",
                   pdb="\n".join(lineas),
                   leyenda=[["#7f9cc9", "dominio grande"], ["#e2a2c3", "dominio pequeño"], [CARBONO["glc"], "glucosa"],
                            [CARBONO["atp"], "AMP‑PNP (análogo del ATP)"], [ELEMENTOS["Mg"], "Mg²⁺"]],
                   residuos=[[205, "Asp205 · base"], [169, "Lys169"], [228, "Thr228"], [151, "Ser151"]])
     return _html(config, alto=560)
+
+
+def _cuaternion(M):
+    """Cuaternión (x, y, z, w) de una matriz de rotación 3×3 (convención de three.js / 3Dmol)."""
+    m = np.asarray(M, float)
+    t = np.trace(m)
+    if t > 0:
+        r = np.sqrt(1 + t) * 2
+        w, x, y, z = 0.25 * r, (m[2, 1] - m[1, 2]) / r, (m[0, 2] - m[2, 0]) / r, (m[1, 0] - m[0, 1]) / r
+    elif m[0, 0] > m[1, 1] and m[0, 0] > m[2, 2]:
+        r = np.sqrt(1 + m[0, 0] - m[1, 1] - m[2, 2]) * 2
+        w, x, y, z = (m[2, 1] - m[1, 2]) / r, 0.25 * r, (m[0, 1] + m[1, 0]) / r, (m[0, 2] + m[2, 0]) / r
+    elif m[1, 1] > m[2, 2]:
+        r = np.sqrt(1 + m[1, 1] - m[0, 0] - m[2, 2]) * 2
+        w, x, y, z = (m[0, 2] - m[2, 0]) / r, (m[0, 1] + m[1, 0]) / r, 0.25 * r, (m[1, 2] + m[2, 1]) / r
+    else:
+        r = np.sqrt(1 + m[2, 2] - m[0, 0] - m[1, 1]) * 2
+        w, x, y, z = (m[1, 0] - m[0, 1]) / r, (m[0, 2] + m[2, 0]) / r, (m[1, 2] + m[2, 1]) / r, 0.25 * r
+    return [round(float(v), 6) for v in (x, y, z, w)]
+
+
+def _giro_sitio(lineas):
+    """Giro de cámara para la vista «Sitio activo»: el plano Pγ–O6–OD1(Asp205) queda en la pantalla, así las dos
+    distancias marcadas se ven con su longitud real y no de frente. Se elige el lado que mira desde fuera de la
+    proteína."""
+    todos = _leer_pdb("\n".join(lineas))
+    def pos(resn, nombre, resi=None):
+        return next(np.array([a["x"], a["y"], a["z"]]) for a in todos
+                    if a["r"] == resn and a["n"] == nombre and (resi is None or a["s"] == resi))
+    try:
+        pg, o6, od1 = pos("ANP", "PG"), pos("BGC", "O6"), pos("ASP", "OD1", 205)
+    except StopIteration:
+        return None
+    x = pg - o6
+    x /= np.linalg.norm(x)
+    n = np.cross(pg - o6, od1 - o6)
+    n /= np.linalg.norm(n)
+    prot = np.array([[a["x"], a["y"], a["z"]] for a in todos if a["n"] == "CA"])
+    if np.dot(n, o6 - prot.mean(0)) < 0:
+        n = -n
+    y = np.cross(n, x)
+    return _cuaternion(np.vstack([x, y, n]).T)
+
+
+def _distancias_cristal(lineas):
+    """Las distancias clave del sitio activo (las mismas que calcula la celda «📏 Distancias clave en el cristal»)."""
+    def pos(resn, nombre, resi=None):
+        for l in lineas:
+            if l[17:20].strip() == resn and l[12:16].strip() == nombre and (resi is None or int(l[22:26]) == resi):
+                return np.array([float(l[30:38]), float(l[38:46]), float(l[46:54])])
+        return None
+
+    pg, o6, od1 = pos("ANP", "PG"), pos("BGC", "O6"), pos("ASP", "OD1", 205)
+    salida = []
+    for a, b, nombre, color, na, nb in ((pg, o6, "Pγ (ATP) ··· O6 (glucosa)", FORMA, None, None),
+                                        (o6, od1, "O6 ··· OD1 (Asp205)", "#8fb6ff", None, None)):
+        if a is None or b is None:
+            continue
+        salida.append(dict(a=a.round(3).tolist(), b=b.round(3).tolist(), color=color,
+                           texto=f"{nombre}  {np.linalg.norm(a - b):.2f} Å", na=na, nb=nb))
+    return salida
 
 
 def region_qm():
@@ -505,27 +566,49 @@ load(function($3Dmol){
     m.setStyle({resn:"MG"},{sphere:{scale:.7,color:"#3ddc84"}}); m.setStyle({resn:"K"},{sphere:{scale:.6,color:"#b69cff"}});
     const sel=cfg.residuos.map(r=>r[0]);
     m.setStyle({resi:sel,hetflag:false,not:{atom:["N","C","O"]}},{stick:{radius:.18,colorscheme:esquema("asp")}},true);
-    let sup=null;
+    let sup=null, verDist=true, formasDist=[];
+    // distancias medidas en el cristal: línea discontinua + valor, y el nombre de cada átomo
+    const distancias=()=>{formasDist.forEach(s=>viewer.removeShape(s));formasDist=[];
+      if(!verDist)return;
+      (cfg.distancias||[]).forEach((d,k)=>{const A={x:d.a[0],y:d.a[1],z:d.a[2]},B={x:d.b[0],y:d.b[1],z:d.b[2]};
+        formasDist.push(viewer.addCylinder({start:A,end:B,radius:.07,color:d.color,dashed:true,dashLength:.22,gapLength:.16}));
+        formasDist.push(viewer.addSphere({center:A,radius:.42,color:d.color,wireframe:true}));
+        formasDist.push(viewer.addSphere({center:B,radius:.42,color:d.color,wireframe:true}));
+        viewer.addLabel(d.texto,{position:{x:(A.x+B.x)/2,y:(A.y+B.y)/2,z:(A.z+B.z)/2},fontSize:13,fontColor:"#0c111b",
+          backgroundColor:d.color,backgroundOpacity:.95,borderRadius:6,inFront:true,alignment:"center",screenOffset:{x:k===0?70:-70,y:k===0?40:-40}});
+        if(d.na)viewer.addLabel(d.na,{position:A,fontSize:11,fontColor:"#e8ecf3",backgroundColor:"#0c111b",backgroundOpacity:.7,
+          borderRadius:5,inFront:true,alignment:"center",screenOffset:{x:-46,y:0}});
+        if(d.nb)viewer.addLabel(d.nb,{position:B,fontSize:11,fontColor:"#e8ecf3",backgroundColor:"#0c111b",backgroundOpacity:.7,
+          borderRadius:5,inFront:true,alignment:"center",screenOffset:{x:52,y:0}});});};
     const vista=(modo)=>{viewer.removeAllLabels();
-      if(modo==="sitio"){viewer.zoomTo({resn:["BGC","ANP","MG"]},800);
-        cfg.residuos.forEach(([r,t])=>{viewer.addLabel(t,{fontSize:12,fontColor:"#0c111b",backgroundColor:"#e8ecf3",backgroundOpacity:.85,
-          borderRadius:6,inFront:true},{resi:r,atom:"CB"});});
-        viewer.addLabel("glucosa",{fontSize:12,fontColor:"#0c111b",backgroundColor:"#ffb38a",backgroundOpacity:.9,inFront:true},{resn:"BGC",atom:"C4"});
-        viewer.addLabel("ATP",{fontSize:12,fontColor:"#0c111b",backgroundColor:"#ffd27a",backgroundOpacity:.9,inFront:true},{resn:"ANP",atom:"PB"});}
+      if(modo==="sitio"){
+        // encuadre en los átomos que reaccionan (glucosa, fosfatos, Mg y Asp205) y corte de lo que queda delante
+        viewer.zoomTo({or:[{resn:"BGC"},{resn:"MG"},{resn:"ANP",atom:["PG","PB","PA","O1G","O2G","O3G","N3B","O1B","O2B"]},
+                           {resi:205,atom:["CG","OD1","OD2"]}]});
+        if(cfg.giro_sitio){const v=viewer.getView();v[4]=cfg.giro_sitio[0];v[5]=cfg.giro_sitio[1];v[6]=cfg.giro_sitio[2];
+          v[7]=cfg.giro_sitio[3];viewer.setView(v);}
+        viewer.zoom(.85); viewer.setSlab(-5,14);
+        cfg.residuos.filter(([r])=>r===205||r===169).forEach(([r,t])=>{viewer.addLabel(t,{fontSize:12,fontColor:"#0c111b",backgroundColor:"#e8ecf3",backgroundOpacity:.85,
+          borderRadius:6,inFront:true},{resi:r,atom:"CB"});});}
       else{viewer.zoomTo();viewer.zoom(1.3);}
-      viewer.render();};
+      distancias(); viewer.render();};
     const bG=boton("Toda la enzima",()=>{vista("todo");activo(bG,true);activo(bS,false);});
     const bS=boton("Sitio activo",()=>{vista("sitio");activo(bS,true);activo(bG,false);});
     const bSup=boton("Superficie",()=>{if(sup===null){sup=viewer.addSurface($3Dmol.SurfaceType.MS,{opacity:.6,color:"#9fb3d6"},{hetflag:false});activo(bSup,true);}
       else{viewer.removeSurface(sup);sup=null;activo(bSup,false);}});
     const bR=boton("Girar",()=>{girando=!girando;viewer.spin(girando?"y":false,.4);activo(bR,girando);});
-    [bG,bS,bSup,bR].forEach(b=>bt.appendChild(b)); activo(bG,true);
+    const bD=boton("Distancias",()=>{verDist=!verDist;activo(bD,verDist);vista(modoActual);});
+    let modoActual="todo";
+    bG.addEventListener("click",()=>{modoActual="todo";}); bS.addEventListener("click",()=>{modoActual="sitio";});
+    [bG,bS,bD,bSup,bR].forEach(b=>bt.appendChild(b)); activo(bG,true); activo(bD,true);
     const info=el("div","background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;font-size:13.5px;line-height:1.55;color:#c9d2df");
     info.innerHTML="<div style='font-weight:650;color:#e8ecf3;font-size:15px;margin-bottom:6px'>Qué estás viendo</div>"+
       "Las cintas son la cadena de la proteína: <b style='color:#9fb6de'>dominio grande</b> y <b style='color:#efb3d1'>dominio pequeño</b>. "+
       "En la hendidura entre ambos están la <b style='color:#ffb38a'>glucosa</b> y el <b style='color:#ffd27a'>ATP</b> (aquí AMP‑PNP), con el <b style='color:#3ddc84'>Mg²⁺</b>.<br><br>"+
       "Pulsa <b>Sitio activo</b> para acercarte: verás Asp205, la base que tomará el protón de la glucosa. "+
-      "<b>Superficie</b> muestra la forma de la proteína: la glucosa queda casi enterrada.";
+      "<b>Superficie</b> muestra la forma de la proteína: la glucosa queda casi enterrada.<br><br>"+
+      "Las <b>líneas discontinuas</b> son las distancias medidas en el cristal (las mismas que calcula la celda siguiente): "+
+      (cfg.distancias||[]).map(d=>"<b style='color:"+d.color+"'>"+d.texto+"</b>").join(" · ")+".";
     panel.appendChild(info);
     // un giro lento de bienvenida que se detiene solo a los 10 s (o al pulsar «Girar»)
     vista("todo"); viewer.spin("y",.25); girando=true; activo(bR,true);

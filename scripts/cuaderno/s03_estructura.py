@@ -42,7 +42,9 @@ Un enlace P–O mide 1.6 Å: a 2.7 Å el O6 y el Pγ están **muy cerca, pero a�
 [[fig:sitio_activo | Esquema del sitio activo de la glucoquinasa en el cristal 3FGU con las distancias clave]]
 
 Explora la enzima real, átomo por átomo: **arrastra** para girarla, usa la **rueda** para acercarte
-y los botones para ver el **sitio activo** o la **superficie**:
+y los botones para ver el **sitio activo** o la **superficie**. Las **líneas discontinuas** marcan las dos
+distancias que miden si todo está listo para reaccionar (Pγ ··· O6 y O6 ··· Asp205); sus valores se
+calculan en la celda siguiente:
 """)
 
 code(r'''
@@ -65,8 +67,15 @@ def coords_pdb(texto, resn, name, resi=None):
                 return np.array([float(l[30:38]), float(l[38:46]), float(l[46:54])])
 
 PG, O6, OD1 = coords_pdb(pdb_cristal, "ANP", "PG"), coords_pdb(pdb_cristal, "BGC", "O6"), coords_pdb(pdb_cristal, "ASP", "OD1", 205)
-print(f"Pγ ··· O6 (glucosa)  = {np.linalg.norm(PG - O6):.2f} Å   (un enlace P–O mide 1.6 Å: están muy cerca, pero aún no unidos)")
-print(f"O6 ··· OD1 (Asp205)  = {np.linalg.norm(O6 - OD1):.2f} Å   (enlace de hidrógeno corto: Asp205 está listo para tomar el protón)")
+viz.mostrar(
+    viz.tarjetas([("Pγ ··· O6 (glucosa)", f"{np.linalg.norm(PG - O6):.2f}", "Å",
+                   "un enlace P–O mide 1.6 Å: están muy cerca, pero aún no unidos", "agua"),
+                  ("O6 ··· OD1 (Asp205)", f"{np.linalg.norm(O6 - OD1):.2f}", "Å",
+                   "enlace de hidrógeno corto: Asp205 está listo para tomar el protón", "azul")],
+                 titulo="Las dos distancias clave, medidas en el archivo del cristal"),
+    viz.mensaje("Son las mismas líneas discontinuas del visor 3D de arriba (verde agua y azul). Pulsa «Sitio activo» "
+                "para acercarte y gira la molécula: verás que el O6 de la glucosa apunta directamente al fósforo γ del ATP.",
+                "idea"))
 ''')
 
 md(r"""
