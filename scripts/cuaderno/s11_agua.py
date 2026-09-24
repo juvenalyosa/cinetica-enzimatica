@@ -77,7 +77,16 @@ if "frecuencias_ase_mas_bajas" in agua:
     conjuntos.append(("Hessiano más fino (ASE)", agua["frecuencias_ase_mas_bajas"]))
 fig = viz.plot_frequencies(conjuntos, title="Mirar la magnitud, no solo contar las imaginarias",
                            subtitle="Gris: ruido de la cavidad del disolvente. Naranja: movimientos que «caen». El Hessiano más fino deja uno solo: la reacción")
-viz.mostrar(fig)
+n_f = max(len(f) for _, f in conjuntos)
+tabla_f = pd.DataFrame({"modo": np.arange(1, n_f + 1),
+                        **{nombre.split(" (")[0].replace("3 · ", ""): np.r_[np.asarray(f, float), [np.nan] * (n_f - len(f))]
+                           for nombre, f in conjuntos}})
+viz.mostrar(fig, viz.datos(
+    tabla_f, "las frecuencias más bajas del TS en agua",
+    "Cada columna es un cálculo del Hessiano; cada fila, uno de los modos más lentos ordenados de menor a mayor. "
+    "Los valores entre −40 y +40 cm⁻¹ son ruido numérico de la cavidad del disolvente.",
+    y=list(tabla_f.columns[1:]), unidades={c: "cm⁻¹" for c in tabla_f.columns[1:]}, formatos={c: "{:.1f}" for c in tabla_f.columns[1:]},
+    resaltar={0: ("la reacción", "naranja")}))
 ''')
 
 md(r"""
@@ -100,7 +109,13 @@ try:
                                   color=viz.PALETTE[6],
                                   title=f"En agua la colina mide {agua['barrera_kcal']:.1f} kcal/mol",
                                   subtitle="Camino de descenso desde el TS refinado; energías relativas al reactivo en agua")
-    fig;
+    e_rel = cam_agua["energia_kcal"].values - agua["E_reactivo"]
+    viz.mostrar(fig, viz.datos(
+        pd.DataFrame({"paso": cam_agua["cuadro"], "ξ": cam_agua["xi"], "E": e_rel}), "el camino en agua",
+        "Cada fila es un paso del descenso desde el TS en agua, en el orden del camino.",
+        x="ξ", y="E", calculadas={"E": "energía del paso − energía del reactivo en agua"},
+        unidades={"ξ": "Å", "E": "kcal/mol"}, formatos={"ξ": "{:+.2f}", "E": "{:.1f}"},
+        resaltar={int(np.argmax(e_rel)): ("TS", "naranja")}, barra="E"))
 except FileNotFoundError:
     display(viz.mensaje("Camino en agua no disponible.", "ojo"))
 ''')
@@ -125,7 +140,16 @@ fig = viz.plot_energy_levels(con, compare=sin, ts_indices=[1], label="dentro de 
                              subtitle="Azul/naranja: dentro de la enzima. Gris: el mismo sitio activo en agua")
 viz.mostrar(fig, viz.tarjetas(
     [("Efecto del entorno proteico", f"{efecto:+.1f}", "kcal/mol", "barrera en la enzima − barrera en agua", "azul"),
-     ("En velocidad", f"× {10 ** (-efecto / 1.364):.0f}", "", "cada 1.36 kcal/mol es un factor 10", "naranja")]))
+     ("En velocidad", f"× {10 ** (-efecto / 1.364):.0f}", "", "cada 1.36 kcal/mol es un factor 10", "naranja")]),
+    viz.datos(pd.DataFrame({"estado": ["reactivo", "estado de transición", "producto"],
+                            "en la enzima": [e for _, e in con], "en agua": [e for _, e in sin],
+                            "diferencia": [a - b for (_, a), (_, b) in zip(con, sin)]}),
+              "los dos diagramas",
+              "Las alturas de los dos diagramas, lado a lado. La fila del estado de transición es la que decide la velocidad.",
+              y=["en la enzima", "en agua"], calculadas={"diferencia": "en la enzima − en agua"},
+              unidades={"en la enzima": "kcal/mol", "en agua": "kcal/mol", "diferencia": "kcal/mol"},
+              formatos={"en la enzima": "{:.1f}", "en agua": "{:.1f}", "diferencia": "{:+.1f}"},
+              resaltar={1: ("TS", "naranja")}))
 ''')
 
 md(r"""

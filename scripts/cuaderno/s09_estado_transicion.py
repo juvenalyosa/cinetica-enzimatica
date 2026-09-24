@@ -83,7 +83,15 @@ perfiles = [(xi_esc, e_esc, "escaneo restringido"),
 fig = viz.plot_energy_profiles(perfiles, xlabel="ξ (Å)", relative=False, colors=[viz.INK_MUTED, viz.COLORS["reactivo"]],
                                title="El NEB encuentra la misma cima por un camino más natural",
                                subtitle="Gris: escaneo que fuerza una sola distancia. Azul: NEB, que relaja todas las coordenadas a la vez")
-fig;
+tabla_neb = pd.DataFrame({"imagen": neb["imagen"] if "imagen" in neb else np.arange(len(neb)),
+                          "ξ": np.r_[R["xi"], neb["xi"].values[1:]], "E": np.r_[0.0, neb["energia_rel_kcal"].values[1:]]})
+viz.mostrar(fig, viz.datos(
+    tabla_neb, "el NEB (la cadena de imágenes)",
+    "Cada fila es una «cuenta» de la cadena elástica que une reactivo y producto. Al final de la optimización la imagen más "
+    "alta ha trepado hasta la cima: esa es la estimación del estado de transición.",
+    x="ξ", y="E", unidades={"ξ": "Å", "E": "kcal/mol"}, formatos={"ξ": "{:+.2f}", "E": "{:.1f}"},
+    resaltar={0: ("R", "azul"), int(tabla_neb["E"].idxmax()): ("trepadora", "naranja"), len(tabla_neb) - 1: ("P", "agua")},
+    barra="E"))
 ''')
 
 code(r'''
@@ -105,7 +113,14 @@ tarjetas_ts = viz.tarjetas(
 fig = viz.plot_frequencies([("TS en la enzima", freqs)],
                            title=f"Una sola frecuencia imaginaria ({freqs.min():.0f} cm⁻¹): es un punto de silla".replace("-", "−"),
                            subtitle="Las seis vibraciones más lentas del estado de transición; las demás son reales (positivas)")
-viz.mostrar(tarjetas_ts, fig)
+viz.mostrar(tarjetas_ts, fig, viz.datos(
+    pd.DataFrame({"modo": np.arange(1, len(freqs) + 1), "frecuencia": freqs,
+                  "tipo": ["imaginaria: la geometría «cae»" if f < 0 else "real: la geometría vibra" for f in freqs]}),
+    "las frecuencias más bajas del TS",
+    "Las frecuencias salen de la matriz de segundas derivadas de la energía (el Hessiano). Por convención, una curvatura "
+    "negativa se escribe como una frecuencia negativa («imaginaria»).",
+    y="frecuencia", unidades={"frecuencia": "cm⁻¹"}, formatos={"frecuencia": "{:.1f}"},
+    resaltar={int(np.argmin(freqs)): ("la reacción", "naranja")}))
 ''')
 
 md(r"""
@@ -146,7 +161,13 @@ fig = viz.plot_energy_profile(camino["xi"].values, camino["energia_rel_kcal"].va
                               state_names=("reactivo", "TS", "fin del descenso"),
                               title="Desde la cima se baja a los dos valles: este TS conecta R con P",
                               subtitle="Cada punto es una geometría relajada; la meseta tras la cima es el protón que pasa a Asp205")
-fig;
+viz.mostrar(fig, viz.datos(
+    camino.rename(columns={"cuadro": "paso", "energia_rel_kcal": "E"})[["paso", "xi", "E"]].rename(columns={"xi": "ξ"}),
+    "el descenso desde la cima",
+    "Cada fila es un paso del descenso: desde el TS se empuja un poco hacia cada lado y se deja caer la geometría. Los pasos "
+    "están en el orden del camino, de un valle a otro pasando por la cima.",
+    x="ξ", y="E", unidades={"ξ": "Å", "E": "kcal/mol"}, formatos={"ξ": "{:+.2f}", "E": "{:.1f}"},
+    resaltar={int(camino["energia_rel_kcal"].idxmax()): ("TS", "naranja")}, barra="E"))
 ''')
 
 code(r'''
@@ -154,7 +175,11 @@ code(r'''
 niveles = [("E·S (reactivo)", 0.0), ("TS", ts["barrera_kcal"]), ("E·P (producto)", P["dE_reaccion_kcal"])]
 fig = viz.plot_energy_levels(niveles, ts_indices=[1], title="La reacción en tres números",
                              subtitle="PM7/Amber, entorno fijo: energías electrónicas relativas (ΔE), todavía no energías libres")
-fig;
+viz.mostrar(fig, viz.datos(
+    pd.DataFrame({"estado": [n for n, _ in niveles], "E": [e for _, e in niveles]}), "los tres niveles",
+    "Las tres alturas del diagrama. La barrera es la diferencia TS − reactivo; la energía de reacción, producto − reactivo.",
+    y="E", unidades={"E": "kcal/mol"}, formatos={"E": "{:.1f}"},
+    resaltar={0: ("R", "azul"), 1: ("TS", "naranja"), 2: ("P", "agua")}))
 ''')
 
 md(r"""

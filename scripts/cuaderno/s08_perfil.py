@@ -98,7 +98,23 @@ fig = viz.plot_energy_profile(xi_esc, e_esc, relative=False, xlabel="ξ = d(Pγ�
                               state_names=("reactivo\nfosfato en el ATP", "cima: 1.ª estimación del TS", "producto\nfosfato en la glucosa"),
                               title=f"Para pasar el fosfato hay que subir una colina de {e_esc.max():.0f} kcal/mol",
                               subtitle="Escaneo relajado: se fija ξ en cada punto y se relaja todo lo demás (PM7 en el campo de la enzima)")
-fig;
+tabla_esc = pd.DataFrame({
+    "punto": ["reactivo"] + [str(int(p)) for p in escaneo["punto"]],
+    "ξ fijado": np.r_[np.nan, escaneo["xi_objetivo"].values],
+    "Pγ–O3β": np.r_[R["d_PG_O3B"], escaneo["d_PG_O3B"].values],
+    "Pγ–O6": np.r_[R["d_PG_O6"], escaneo["d_PG_O6"].values],
+    "ξ": xi_esc,
+    "O6–H": np.r_[R.get("d_O6_H", np.nan), escaneo["d_O6_H"].values],
+    "E": e_esc})
+k_ts = int(np.argmax(e_esc))
+viz.mostrar(fig, viz.datos(
+    tabla_esc, "el escaneo de la reacción",
+    "Cada fila es una geometría optimizada. El programa fija ξ en un valor («ξ fijado»), relaja todos los demás átomos y "
+    "mide la energía. Fíjate en cómo se alarga Pγ–O3β (el enlace que se rompe) mientras se acorta Pγ–O6 (el que se forma).",
+    x="ξ", y="E", calculadas={"ξ": "d(Pγ–O3β) − d(Pγ–O6)", "E": "energía del punto − energía del reactivo relajado"},
+    unidades={"ξ fijado": "Å", "Pγ–O3β": "Å", "Pγ–O6": "Å", "ξ": "Å", "O6–H": "Å", "E": "kcal/mol"},
+    formatos={c: "{:.2f}" for c in ("ξ fijado", "Pγ–O3β", "Pγ–O6", "ξ", "O6–H")} | {"E": "{:.1f}"},
+    resaltar={0: ("R", "azul"), k_ts: ("cima", "naranja"), len(tabla_esc) - 1: ("P", "agua")}, barra="E"))
 ''')
 
 md(r"""

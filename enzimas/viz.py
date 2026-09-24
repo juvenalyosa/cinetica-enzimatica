@@ -1741,3 +1741,135 @@ def mostrar(*objetos):
         display(obj)
         if isinstance(obj, Figure):
             plt.close(obj)
+
+
+def datos(df, titulo, explicacion=None, x=None, y=None, calculadas=None, unidades=None, formatos=None,
+          resaltar=None, barra=None, max_filas=36, abierta=None, nota=None):
+    """La tabla de datos que hay detrás de una gráfica, para ver «de dónde sale la curva».
+
+    * ``x`` / ``y``: columnas que van en los ejes (se marcan con una etiqueta «eje x» / «eje y»; ``y`` puede ser lista).
+    * ``calculadas``: {columna: "cómo se calcula"}; se marcan como «calculada» y la fórmula aparece bajo la tabla.
+    * ``unidades``: {columna: "µM/s"} (segunda línea del encabezado).
+    * ``resaltar``: {índice de fila: ("TS", "naranja")} filas destacadas con una etiqueta de color.
+    * ``barra``: columna que además se dibuja como barra horizontal (su tamaño relativo, como en la gráfica).
+    * Tablas largas: se muestran como mucho ``max_filas`` filas repartidas (las resaltadas siempre).
+    * ``abierta``: desplegada al cargar (por defecto, si tiene ≤ 16 filas); si no, se abre con un clic.
+    """
+    from IPython.display import HTML
+
+    df = df.reset_index(drop=True)
+    n_total = len(df)
+    resaltar = {int(k): v for k, v in (resaltar or {}).items()}
+    if n_total > max_filas:
+        paso = int(np.ceil(n_total / max_filas))
+        keep = sorted(set(range(0, n_total, paso)) | {n_total - 1} | set(resaltar))
+    else:
+        keep = list(range(n_total))
+    ys = [y] if isinstance(y, str) else list(y or [])
+    calculadas = calculadas or {}
+    unidades = unidades or {}
+    formatos = formatos or {}
+    rol = {}
+    if x:
+        rol[x] = ("eje x", _BLUE)
+    for c in ys:
+        rol[c] = ("eje y", _ORANGE)
+    for c in calculadas:
+        rol.setdefault(c, ("calculada", _VIOLET))
+    if barra is not None:
+        col = pd_numeric = np.asarray(df[barra], dtype=float)
+        lo, hi = np.nanmin(col), np.nanmax(col)
+
+    def fmt(c, v):
+        if v is None or (isinstance(v, float) and not np.isfinite(v)):
+            return "—"
+        f = formatos.get(c)
+        if f:
+            return f.format(v)
+        if isinstance(v, (float, np.floating)):
+            a = abs(float(v))
+            if a != 0 and (a >= 1e5 or a < 1e-3):
+                m, e = f"{float(v):.2e}".split("e")
+                return f"{m} × 10{_superindice(int(e))}"
+            return f"{float(v):.3g}" if a < 100 else f"{float(v):.1f}"
+        return str(v)
+
+    th = []
+    for c in df.columns:
+        chip = ""
+        if c in rol:
+            t, colr = rol[c]
+            chip = (f'<span style="display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:10.5px;'
+                    f'font-weight:650;color:{colr};background:{_tint(colr, 0.88)}">{t}</span>')
+        uni = f'<div style="font-weight:500;color:{INK_MUTED};font-size:11.5px;margin-top:2px">{_esc(unidades[c])}</div>' if c in unidades else ""
+        th.append(f'<th style="text-align:right;padding:8px 12px;color:{INK_SECONDARY};font-weight:650;font-size:12.5px;'
+                  f'border-bottom:1.5px solid {AXIS};white-space:nowrap;vertical-align:bottom">{_esc(c)}{chip}{uni}</th>')
+    if barra is not None:
+        th.append(f'<th style="padding:8px 12px;border-bottom:1.5px solid {AXIS};min-width:120px;text-align:left;'
+                  f'color:{INK_MUTED};font-weight:600;font-size:11.5px;vertical-align:bottom">{_esc(barra)} en barra</th>')
+    filas = []
+    prev = None
+    for i in keep:
+        if prev is not None and i - prev > 1 and n_total <= max_filas:
+            pass
+        prev = i
+        row = df.iloc[i]
+        et = resaltar.get(i)
+        colr = _ROLE_COLOR.get(et[1], et[1]) if et else None
+        fondo = _tint(colr, 0.9) if et else ("#ffffff" if len(filas) % 2 == 0 else SURFACE)
+        borde = f"box-shadow:inset 4px 0 0 {colr};" if et else ""
+        tds = []
+        for j, c in enumerate(df.columns):
+            v = row[c]
+            clave = c in ys or (et and j == 0)
+            peso = 650 if clave else 400
+            color_txt = INK if (clave or et) else INK_SECONDARY
+            extra = ""
+            if j == 0 and et:
+                extra = (f'<span style="display:inline-block;margin-right:8px;padding:1px 8px;border-radius:999px;font-size:11px;'
+                         f'font-weight:700;color:#ffffff;background:{colr}">{_esc(et[0])}</span>')
+            tds.append(f'<td style="padding:6px 12px;text-align:right;color:{color_txt};font-weight:{peso};'
+                       f'font-variant-numeric:tabular-nums;border-bottom:1px solid {GRID};white-space:nowrap">{extra}{_esc(fmt(c, v))}</td>')
+        if barra is not None:
+            val = float(row[barra]) if np.isfinite(float(row[barra])) else lo
+            w = 0 if hi == lo else 100 * (val - lo) / (hi - lo)
+            tds.append(f'<td style="padding:6px 12px;border-bottom:1px solid {GRID}"><div style="height:8px;border-radius:4px;'
+                       f'background:{_tint(_ORANGE, 0.85)}"><div style="width:{w:.1f}%;height:8px;border-radius:4px;'
+                       f'background:{colr or _ORANGE}"></div></div></td>')
+        filas.append(f'<tr style="background:{fondo};{borde}">{"".join(tds)}</tr>')
+    formulas = "".join(f'<div style="margin-top:4px"><span style="color:{_VIOLET};font-weight:650">{_esc(c)}</span> = {_esc(f)}</div>'
+                       for c, f in calculadas.items())
+    recorte = (f'<div style="margin-top:6px">Se muestran {len(keep)} de {n_total} filas, repartidas a lo largo de la curva.</div>'
+               if len(keep) < n_total else "")
+    pie = (f'<div style="font-size:13px;color:{INK_SECONDARY};margin:12px 4px 0;line-height:1.45">{formulas}{recorte}'
+           f'{f"<div style=margin-top:6px>{_esc(nota)}</div>" if nota else ""}</div>')
+    if abierta is None:
+        abierta = len(keep) <= 16
+    expl = (f'<div style="font-size:13.5px;color:{INK_SECONDARY};margin:0 4px 10px;line-height:1.45">{_esc(explicacion)}</div>'
+            if explicacion else "")
+    return HTML(
+        f'<details {"open" if abierta else ""} style="font-family:{_CARD_FONT};font-size:13.5px;background:{SURFACE};'
+        f'border:1px solid {GRID};border-radius:18px;padding:12px 16px;max-width:960px;margin:8px 0">'
+        f'<summary style="cursor:pointer;font-size:15px;font-weight:650;color:{INK};list-style-position:inside">'
+        f'📋 Los datos de la gráfica: {_esc(titulo)} <span style="font-weight:500;color:{INK_MUTED};font-size:13px">'
+        f'· {n_total} {"punto" if n_total == 1 else "puntos"} · clic para {"ocultar" if abierta else "ver"}</span></summary>'
+        f'<div style="margin-top:10px">{expl}<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%">'
+        f'<thead><tr>{"".join(th)}</tr></thead><tbody>{"".join(filas)}</tbody></table></div>{pie}</div></details>')
+
+
+def _superindice(n):
+    return str(n).translate(str.maketrans("-0123456789", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹"))
+
+
+def duracion(segundos):
+    """Una duración en palabras: «0.3 ms», «17 s», «2.4 h», «12 años»…"""
+    s = float(segundos)
+    for limite, div, unidad in ((1e-6, 1e-9, "ns"), (1e-3, 1e-6, "µs"), (1, 1e-3, "ms"), (60, 1, "s"), (3600, 60, "min"),
+                                (86400, 3600, "h"), (86400 * 365, 86400, "días")):
+        if s < limite:
+            return f"{s / div:.3g} {unidad}"
+    anos = s / (86400 * 365.25)
+    if anos < 1e4:
+        return f"{anos:.3g} años"
+    m, e = f"{anos:.1e}".split("e")
+    return f"{m} × 10{_superindice(int(e))} años"

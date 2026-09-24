@@ -162,7 +162,36 @@ viz._finish(axes[1], "[I] (mM)", "K_M aparente (mM)")
 axes[1].set_title("Gráfico secundario", loc="left", fontsize=13, fontweight="semibold", pad=10)
 viz._fig_title(fig, f"Tres caminos, un mismo Kᵢ ≈ {aji['ki']:.1f} mM (valor usado para simular: {Ki_real:g} mM)",
                "Izquierda: 1/v₀ frente a [I] para varias [S]. Derecha: K_M aparente frente a [I]. Ambos con los mismos datos.")
-viz.mostrar(fig, viz.tarjetas([
+tabla_dixon = df_i.rename(columns={"S": "[S]", "I": "[I]", "v": "v₀"})[["[I]", "[S]", "v₀"]].copy()
+tabla_dixon["1/v₀"] = 1 / tabla_dixon["v₀"]
+tabla_dixon["v₀ sin inhibidor (misma [S])"] = [df_i[(df_i.I == 0) & (df_i.S == sv)].v.iloc[0] for sv in tabla_dixon["[S]"]]
+tabla_dixon["actividad restante"] = tabla_dixon["v₀"] / tabla_dixon["v₀ sin inhibidor (misma [S])"]
+datos_dixon = viz.datos(
+    tabla_dixon, "el gráfico de Dixon",
+    "Los 28 tubos del experimento: 4 concentraciones de inhibidor × 7 de glucosa (3 % de ruido). En el gráfico de "
+    "Dixon cada [S] es una recta: sus puntos son las filas con esa [S], con [I] en el eje x y 1/v₀ en el eje y. "
+    "Con mucha glucosa el inhibidor competitivo casi no se nota (actividad restante cerca del 100 %).",
+    x="[I]", y="1/v₀",
+    calculadas={"1/v₀": "1 ÷ v₀", "actividad restante": "v₀ ÷ v₀ sin inhibidor, con la misma [S]"},
+    unidades={"[I]": "mM", "[S]": "mM", "v₀": "µM/s", "1/v₀": "s/µM", "v₀ sin inhibidor (misma [S])": "µM/s"},
+    formatos={"[I]": "{:g}", "[S]": "{:g}", "v₀": "{:.2f}", "1/v₀": "{:.3f}", "v₀ sin inhibidor (misma [S])": "{:.2f}",
+              "actividad restante": "{:.0%}"},
+    resaltar={i: ("[I] = 10 mM", "rojo") for i in tabla_dixon.index[(tabla_dixon["[I]"] == max(I_exp)) & (tabla_dixon["[S]"] <= 2)]},
+    barra="1/v₀", max_filas=40, abierta=False)
+tabla_sec = pd.DataFrame({"[I]": np.array(I_exp, dtype=float), "K_M aparente": km_ap, "K_M ap / K_M": km_ap / aji["km"],
+                          "1 + [I]/Kᵢ (teoría)": 1 + np.array(I_exp) / aji["ki"]})
+datos_sec = viz.datos(
+    tabla_sec, "el gráfico secundario",
+    "Una fila por concentración de inhibidor: a cada grupo de 7 tubos se le ajusta su propia hipérbola, y su K_M "
+    "aparente es un punto del gráfico secundario. Si el inhibidor es competitivo, K_M ap/K_M crece como 1 + [I]/Kᵢ.",
+    x="[I]", y="K_M aparente",
+    calculadas={"K_M aparente": "ajuste de Michaelis–Menten solo a los tubos con esa [I]",
+                "K_M ap / K_M": "K_M aparente ÷ K_M sin inhibidor (del ajuste global)",
+                "1 + [I]/Kᵢ (teoría)": "lo que predice la ecuación competitiva con el Kᵢ del ajuste global"},
+    unidades={"[I]": "mM", "K_M aparente": "mM"},
+    formatos={"[I]": "{:g}", "K_M aparente": "{:.2f}", "K_M ap / K_M": "{:.2f}", "1 + [I]/Kᵢ (teoría)": "{:.2f}"},
+    barra="K_M aparente")
+viz.mostrar(fig, datos_dixon, datos_sec, viz.tarjetas([
     ("1 · ajuste global", f"{aji['ki']:.2f}", f"± {aji['ki_err']:.2f} mM", f"K_M = {aji['km']:.2f} mM, V_max = {aji['vmax']:.2f} µM/s", "azul"),
     ("2 · gráfico secundario", f"{sec['ki']:.2f}", "mM", f"R² = {sec['r2']:.3f}", "agua"),
     ("3 · Dixon", f"{kd['ki']:.2f}", "mM", "por el cruce de las rectas", "naranja"),

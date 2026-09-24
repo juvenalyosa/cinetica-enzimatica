@@ -83,7 +83,21 @@ viz.plot_arrhenius(T_K, k_T, fit=aj_arr, ax=axes[0], title="Arrhenius: ln k fren
 viz.plot_eyring(T_K, k_T, fit=aj_eyr, ax=axes[1], title="Eyring: ln(k/T) frente a 1000/T")
 viz._fig_title(fig, "Más calor, más velocidad: la pendiente mide cuánto",
                "Siete temperaturas de 10 a 40 °C (eje superior). Una recta empinada = una reacción muy sensible a la temperatura.")
-viz.mostrar(fig, viz.tarjetas([
+tabla_T = pd.DataFrame({"T": T_K, "T (°C)": T_K - 273.15, "k medida": k_T, "1000/T": 1000 / T_K,
+                        "ln k": np.log(k_T), "ln(k/T)": np.log(k_T / T_K)})
+datos_T = viz.datos(
+    tabla_T, "Arrhenius y Eyring",
+    "Siete medidas de la constante de velocidad, una por temperatura (3 % de ruido). Las dos rectas usan el mismo "
+    "eje x, 1000/T; Arrhenius pone ln k en el eje y y Eyring, ln(k/T). Su pendiente da E_a y ΔH‡.",
+    x="1000/T", y=["ln k", "ln(k/T)"],
+    calculadas={"T (°C)": "T − 273.15", "1000/T": "1000 ÷ T (en K⁻¹ × 1000, para que los números sean cómodos)",
+                "ln k": "logaritmo natural de k  (eje y de Arrhenius; pendiente = −E_a/R)",
+                "ln(k/T)": "logaritmo natural de k ÷ T  (eje y de Eyring; pendiente = −ΔH‡/R)"},
+    unidades={"T": "K", "T (°C)": "°C", "k medida": "s⁻¹", "1000/T": "K⁻¹"},
+    formatos={"T": "{:.2f}", "T (°C)": "{:.0f}", "k medida": "{:.1f}", "1000/T": "{:.4f}", "ln k": "{:.3f}", "ln(k/T)": "{:.3f}"},
+    resaltar={int(np.argmin(np.abs(T_K - 298.15))): ("25 °C", "azul")},
+    barra="k medida")
+viz.mostrar(fig, datos_T, viz.tarjetas([
     ("E_a (Arrhenius)", f"{aj_arr['ea_kcal']:.1f}", "kcal/mol", "cuánto sube k al calentar", "naranja"),
     ("ΔH‡ (Eyring)", f"{aj_eyr['delta_h_kcal']:.1f}", "kcal/mol", "energía que hay que aportar", "naranja"),
     ("ΔS‡ (Eyring)", f"{aj_eyr['delta_s_cal']:.1f}", "cal/mol/K", "negativa: el TS es más ordenado", "violeta"),

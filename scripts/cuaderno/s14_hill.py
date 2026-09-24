@@ -107,7 +107,26 @@ fig.set_size_inches(10.5, 5.8)
 ax = fig.axes[0]
 viz._kband(ax, 4, 7, "glucosa en sangre\nen ayunas (4–7 mM)", color=viz._tint(viz.COLORS["ts"], 0.9), y_text=0.97)
 s10, s90 = cin.substrate_at_fraction(1.0, s_half, n_h, 0.1), cin.substrate_at_fraction(1.0, s_half, n_h, 0.9)
-viz.mostrar(fig, viz.tarjetas([
+S_tab = np.array(sorted({1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 30, round(s_half, 2)}), dtype=float)
+mm_tab, hill_tab = cin.michaelis_menten(S_tab, 1.0, s_half), cin.hill(S_tab, 1.0, s_half, n_h)
+tabla_hill = pd.DataFrame({"[glucosa]": S_tab, "[S]/S₀.₅": S_tab / s_half, "hipérbola (n = 1)": mm_tab,
+                           f"sigmoide (n = {n_h:g})": hill_tab, "diferencia": hill_tab - mm_tab})
+resalte = {int(np.argmin(np.abs(S_tab - s_half))): ("S₀.₅", "naranja")}
+resalte.update({i: ("ayuno", "agua") for i, sv in enumerate(S_tab) if 4 <= sv <= 7 and i not in resalte})
+datos_hill = viz.datos(
+    tabla_hill, "sigmoide frente a hipérbola",
+    "Las dos curvas evaluadas en concentraciones redondas de glucosa, como fracción de V_max. Con poca glucosa la "
+    "sigmoide va por debajo (la enzima casi no responde); cerca de S₀.₅ se cruzan; por encima, la sigmoide sube más rápido.",
+    x="[glucosa]", y=["hipérbola (n = 1)", f"sigmoide (n = {n_h:g})"],
+    calculadas={"[S]/S₀.₅": "[glucosa] ÷ S₀.₅",
+                "hipérbola (n = 1)": "[S] / (S₀.₅ + [S])  (Michaelis–Menten con K_M = S₀.₅)",
+                f"sigmoide (n = {n_h:g})": "[S]ⁿ / (S₀.₅ⁿ + [S]ⁿ)  (Hill)",
+                "diferencia": "sigmoide − hipérbola"},
+    unidades={"[glucosa]": "mM", "hipérbola (n = 1)": "v₀/V_max", f"sigmoide (n = {n_h:g})": "v₀/V_max", "diferencia": "v₀/V_max"},
+    formatos={"[glucosa]": "{:g}", "[S]/S₀.₅": "{:.2f}", "hipérbola (n = 1)": "{:.0%}", f"sigmoide (n = {n_h:g})": "{:.0%}",
+              "diferencia": "{:+.0%}"},
+    resaltar=resalte, barra=f"sigmoide (n = {n_h:g})")
+viz.mostrar(fig, datos_hill, viz.tarjetas([
     ("S₀.₅", f"{s_half:g}", "mM", "glucosa a media actividad", "naranja"),
     ("coeficiente de Hill", f"{n_h:g}", "", "n > 1: sigmoide", "naranja"),
     ("del 10 % al 90 %", f"{s10:.1f} → {s90:.1f}", "mM", f"[S] × {s90/s10:.0f}", "naranja"),
@@ -123,7 +142,22 @@ v_h = cin.hill(S_h, 10.0, s_half, n_h) * (1 + 0.03 * rng.standard_normal(S_h.siz
 ajh = cin.fit_hill(S_h, v_h)
 fig = viz.plot_hill_plot(S_h, v_h, ajh["vmax"], title=f"Los datos suben más empinados que la referencia: n = {ajh['n']:.2f}",
                          subtitle="log[v/(V_max − v)] frente a log[S]: la pendiente es el coeficiente de Hill; la línea discontinua es n = 1")
-viz.mostrar(fig, viz.tarjetas([
+frac = v_h / (ajh["vmax"] - v_h)
+tabla_hp = pd.DataFrame({"[S]": S_h, "v₀": v_h, "log₁₀[S]": np.log10(S_h), "v₀/(V_max − v₀)": frac,
+                         "log₁₀[v₀/(V_max − v₀)]": np.log10(frac)})
+datos_hp = viz.datos(
+    tabla_hp, "el gráfico de Hill",
+    "Los 14 tubos del experimento simulado. Para el gráfico de Hill se transforman las dos columnas: el eje x es "
+    "log₁₀[S] y el eje y es log₁₀[v₀/(V_max − v₀)], con el V_max del ajuste. Si la enzima sigue la ecuación de Hill, "
+    "los puntos caen en una recta de pendiente n; cruzan el 0 del eje y justo en [S] = S₀.₅ (mitad ocupada).",
+    x="log₁₀[S]", y="log₁₀[v₀/(V_max − v₀)]",
+    calculadas={"log₁₀[S]": "logaritmo decimal de [S]",
+                "v₀/(V_max − v₀)": "enzima «encendida» ÷ enzima «apagada»",
+                "log₁₀[v₀/(V_max − v₀)]": "logaritmo de la columna anterior (= n·log[S] − n·log S₀.₅)"},
+    unidades={"[S]": "mM", "v₀": "µM/s"},
+    formatos={"[S]": "{:g}", "v₀": "{:.2f}", "log₁₀[S]": "{:.3f}", "v₀/(V_max − v₀)": "{:.3f}", "log₁₀[v₀/(V_max − v₀)]": "{:+.3f}"},
+    resaltar={int(np.argmin(np.abs(np.log10(frac)))): ("≈ S₀.₅", "naranja")})
+viz.mostrar(fig, datos_hp, viz.tarjetas([
     ("V_max", f"{ajh['vmax']:.2f}", "", "meseta del ajuste", "azul"),
     ("S₀.₅", f"{ajh['s_half']:.2f}", "mM", "glucosa a media actividad", "naranja"),
     ("n (Hill)", f"{ajh['n']:.2f}", f"± {ajh['n_err']:.2f}", "n > 1: cooperatividad positiva", "naranja"),

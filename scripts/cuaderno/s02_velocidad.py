@@ -81,12 +81,23 @@ for S0 in (50, 200, 1000):
 fig = viz.plot_progress_curves(curvas, title="La pendiente inicial es la velocidad v₀",
                                subtitle="Con 50, 200 y 1000 µM de sustrato. Discontinuas: las tangentes al inicio. La curva se dobla cuando el sustrato se agota")
 v = [c[2] for c in curvas]
+t_tab = np.array([0, 0.5, 1, 2, 5, 10, 20, 40, 80, 150])              # instantes de la tabla de datos (s)
+col = {c[3]: f"[P] con {c[3].split('= ')[1]}" for c in curvas}
 viz.mostrar(fig, viz.tarjetas(
     [("v₀ con 50 µM", f"{v[0]:.2f}", "µM/s", None, "azul"),
      ("v₀ con 200 µM", f"{v[1]:.2f}", "µM/s", f"4 × más sustrato → × {v[1] / v[0]:.1f} en v₀", "azul"),
      ("v₀ con 1000 µM", f"{v[2]:.2f}", "µM/s", f"20 × más sustrato → × {v[2] / v[0]:.1f} en v₀", "azul")],
     nota="Con más sustrato la pendiente inicial es mayor, pero no proporcionalmente. "
-         "Ese «no proporcionalmente» es toda la cinética enzimática."))
+         "Ese «no proporcionalmente» es toda la cinética enzimática."),
+    viz.datos(pd.DataFrame({"tiempo": t_tab, **{col[c[3]]: np.interp(t_tab, c[0], c[1]) for c in curvas}}),
+              "curvas de progreso",
+              "Cada fila es un instante del experimento simulado; cada columna, una de las tres curvas. Al principio "
+              "el producto crece a ritmo constante (la pendiente es v₀); después se frena porque se gasta el sustrato.",
+              x="tiempo", y=list(col.values()),
+              unidades={"tiempo": "s", **{c: "µM" for c in col.values()}},
+              formatos={"tiempo": "{:g}", **{c: "{:.1f}" for c in col.values()}},
+              resaltar={2: ("v₀", "azul")},
+              nota=f"Fila v₀: en el primer segundo, [P] ÷ tiempo ≈ v₀ ({v[0]:.2f}, {v[1]:.2f} y {v[2]:.2f} µM/s)."))
 ''')
 
 md(r"""

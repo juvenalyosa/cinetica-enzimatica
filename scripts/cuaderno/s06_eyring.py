@@ -111,7 +111,18 @@ ax.set_xlim(5, 30); ax.set_ylim(k_curva.min() / 1e3, k_curva.max() * 10)
 viz._finish(ax, "ΔG‡: altura de la colina (kcal/mol)", "k (s⁻¹, escala log)",
             "Cada 1.36 kcal/mol de barrera, la velocidad cambia 10 veces",
             "Cada escalón gris sube la colina 1.36 kcal/mol y divide la velocidad entre 10.")
-viz.mostrar(fig)
+dg_tab = np.r_[np.arange(10, 30, 2.0), dg0]
+dg_tab.sort()
+k_tab = cin.eyring_rate(dg_tab)
+viz.mostrar(fig, viz.datos(
+    pd.DataFrame({"ΔG‡": dg_tab, "k": k_tab, "tiempo por reacción": [viz.duracion(1 / k) for k in k_tab]}),
+    "la ecuación de Eyring",
+    "Cada fila es un punto de la recta: se elige una altura de colina, se calcula k con la ecuación de Eyring a 25 °C "
+    "y, dándole la vuelta, cuánto tarda en promedio una reacción.",
+    x="ΔG‡", y="k", calculadas={"k": "(k_B·T/h) · exp(−ΔG‡/RT), con k_B·T/h = 6.2 × 10¹² s⁻¹ y RT = 0.59 kcal/mol",
+                               "tiempo por reacción": "1 / k"},
+    unidades={"ΔG‡": "kcal/mol", "k": "s⁻¹"}, formatos={"ΔG‡": "{:.1f}"},
+    resaltar={int(np.argmin(np.abs(dg_tab - dg0))): ("k_cat", "naranja")}))
 ''')
 
 md(r"""

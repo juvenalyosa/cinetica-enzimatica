@@ -109,7 +109,19 @@ viz.mostrar(fig, viz.tarjetas(
     [("Película", f"{md_info['produccion_ns']:g}", "ns", f"{len(md_df)} fotogramas, uno cada {md_info['cuadro_ps']} ps", "gris"),
      ("Átomos simulados", f"{md_info['n_atomos']:,}".replace(",", " "), "", "proteína, ligandos, agua e iones", "gris"),
      ("RMSD medio", f"{md_df['rmsd_CA_A'].mean():.2f}", "Å", "la proteína apenas se deforma", "azul"),
-     ("d(Pγ–O6) media", f"{md_df['d_PG_O6_A'].mean():.2f}", "Å", "cristal: 2.68 Å", "agua")]))
+     ("d(Pγ–O6) media", f"{md_df['d_PG_O6_A'].mean():.2f}", "Å", "cristal: 2.68 Å", "agua")]),
+    viz.datos(pd.DataFrame({"tiempo": md_df["tiempo_ps"].round(0), "d(Pγ–O6)": md_df["d_PG_O6_A"],
+                            "¿ataque cercano?": np.where(md_df["d_PG_O6_A"] < 3.5, "sí", "no"),
+                            "d(O6···Asp205)": md_df["d_O6_OD1asp205_A"], "RMSD Cα": md_df["rmsd_CA_A"]}),
+              "la dinámica molecular",
+              "Cada fila es un fotograma de la película: el programa mide tres números en cada uno y con ellos dibuja "
+              "las tres gráficas. La columna «¿ataque cercano?» es la que cuenta el porcentaje del título.",
+              x="tiempo", y=["d(Pγ–O6)", "d(O6···Asp205)", "RMSD Cα"],
+              calculadas={"¿ataque cercano?": "«sí» si d(Pγ–O6) < 3.5 Å"},
+              unidades={"tiempo": "ps", "d(Pγ–O6)": "Å", "d(O6···Asp205)": "Å", "RMSD Cα": "Å"},
+              formatos={"tiempo": "{:.0f}", "d(Pγ–O6)": "{:.2f}", "d(O6···Asp205)": "{:.2f}", "RMSD Cα": "{:.2f}"},
+              resaltar={int(md_df["d_PG_O6_A"].idxmin()): ("más cerca", "agua"), int(md_df["d_PG_O6_A"].idxmax()): ("más lejos", "rojo")},
+              barra="d(Pγ–O6)"))
 ''')
 
 md(r"""

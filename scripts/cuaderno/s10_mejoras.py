@@ -121,7 +121,17 @@ try:
                                   subtitle="Escaneos de ξ. Azul: el cristal minimizado (cima y valle de producto). Rojo: cuatro fotogramas de la MD en los que Asp205 se alejó")
     viz.mostrar(fig, viz.tabla(df_inst, titulo="Qué pasó en cada conformación",
                                formatos={"ΔE‡ (kcal/mol)": "{:.1f}", "d(Pγ–O6) TS (Å)": "{:.2f}", "d(Pγ–O3β) TS (Å)": "{:.2f}"},
-                               nota="«—»: no hay estado de transición que medir, porque sin producto estable no hay cima entre dos valles."))
+                               nota="«—»: no hay estado de transición que medir, porque sin producto estable no hay cima entre dos valles."),
+                viz.datos(esc_inst.pivot_table(index="punto", columns="instantanea", values="energia_rel_kcal", sort=False)
+                          .reset_index().assign(**{"ξ (media)": esc_inst.groupby("punto")["xi"].mean().values})
+                          [["punto", "ξ (media)"] + list(dict.fromkeys(esc_inst["instantanea"]))],
+                          "las curvas rojas",
+                          "Cada fila es un punto del escaneo (ξ fijado cada vez más a la derecha); cada columna, una conformación "
+                          "de la MD. En ninguna columna la energía llega a un máximo y vuelve a bajar: no hay cima ni valle de producto.",
+                          x="ξ (media)", y=list(dict.fromkeys(esc_inst["instantanea"])),
+                          unidades={"ξ (media)": "Å", **{c: "kcal/mol" for c in esc_inst["instantanea"].unique()}},
+                          formatos={"ξ (media)": "{:+.2f}", **{c: "{:.1f}" for c in esc_inst["instantanea"].unique()}},
+                          nota="ξ varía unas centésimas entre conformaciones; se muestra su media."))
     if len(ok) > 1:
         display(viz.mensaje(f"Barrera media = {media:.1f} ± {sd:.1f} kcal/mol (n = {len(ok)})", "dato"))
 except FileNotFoundError:

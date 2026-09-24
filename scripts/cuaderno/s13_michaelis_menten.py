@@ -126,7 +126,22 @@ v0_sim = cin.initial_rates_from_simulation(E0, S, k1, k_1, k2, t_window=(0.01, 0
 ajuste = cin.fit_michaelis_menten(S, v0_sim)
 teoria = cin.steady_state_parameters(k1, k_1, k2)
 fig = viz.plot_initial_rates_from_ode(S, v0_sim, fit=ajuste)
-viz.mostrar(fig, viz.tarjetas([
+v0_mm = cin.michaelis_menten(S, ajuste["vmax"], ajuste["km"])
+tabla_sim = pd.DataFrame({"[S]₀": S, "v₀ simulada": v0_sim, "v₀ de la hipérbola": v0_mm,
+                          "diferencia": v0_sim - v0_mm, "fracción ocupada": S / (ajuste["km"] + S)})
+datos_sim = viz.datos(
+    tabla_sim, "de la simulación a la hipérbola",
+    "Cada fila es una simulación completa del mecanismo con una [S]₀ distinta: v₀ es la pendiente inicial de la "
+    "curva de producto. La línea de la gráfica es la hipérbola que mejor pasa por estos puntos.",
+    x="[S]₀", y="v₀ simulada",
+    calculadas={"v₀ de la hipérbola": "V_max·[S]₀ / (K_M + [S]₀), con V_max y K_M del ajuste",
+                "diferencia": "v₀ simulada − v₀ de la hipérbola",
+                "fracción ocupada": "[S]₀ / (K_M + [S]₀)"},
+    unidades={"[S]₀": "µM", "v₀ simulada": "µM/s", "v₀ de la hipérbola": "µM/s", "diferencia": "µM/s"},
+    formatos={"[S]₀": "{:g}", "v₀ simulada": "{:.4f}", "v₀ de la hipérbola": "{:.4f}", "diferencia": "{:+.1e}",
+              "fracción ocupada": "{:.0%}"},
+    resaltar={int(np.argmin(np.abs(S - ajuste["km"]))): ("≈ K_M", "naranja")}, barra="v₀ simulada")
+viz.mostrar(fig, datos_sim, viz.tarjetas([
     ("K_M del ajuste", f"{ajuste['km']:.1f}", "µM", "ajustando la hipérbola a las v₀ simuladas", "azul"),
     ("K_M de la fórmula", f"{teoria['km']:.1f}", "µM", "(k₋₁ + k₂)/k₁", "agua"),
     ("V_max del ajuste", f"{ajuste['vmax']:.3f}", "µM/s", "meseta de la curva", "azul"),
@@ -170,7 +185,21 @@ aj = cin.fit_michaelis_menten(S_mM, v_obs)
 fig = viz.plot_michaelis_menten(S_mM, v_obs, fit=aj, title=f"La enzima llega a la mitad de su máximo con {aj['km']:.1f} mM de sustrato",
                                 subtitle="Datos simulados con ruido del 4 % (puntos) y ajuste no lineal de Michaelis–Menten (línea)")
 kc = cin.kcat_km_from_fit(aj, E0_uM)
-viz.mostrar(fig, viz.tarjetas([
+v_ajuste = cin.michaelis_menten(S_mM, aj["vmax"], aj["km"])
+tabla_exp = pd.DataFrame({"[S]": S_mM, "v₀ medida": v_obs, "v₀ del ajuste": v_ajuste, "residuo": v_obs - v_ajuste,
+                          "fracción ocupada": S_mM / (aj["km"] + S_mM)})
+datos_exp = viz.datos(
+    tabla_exp, "el experimento simulado",
+    "Cada fila es un tubo de ensayo: una concentración de glucosa y la velocidad inicial medida (con un 4 % de ruido). "
+    "El ajuste no lineal busca los V_max y K_M que hacen más pequeños los residuos.",
+    x="[S]", y="v₀ medida",
+    calculadas={"v₀ del ajuste": "V_max·[S] / (K_M + [S]), con V_max y K_M del ajuste",
+                "residuo": "v₀ medida − v₀ del ajuste (lo que la curva no explica: el ruido)",
+                "fracción ocupada": "[S] / (K_M + [S]) = v₀ del ajuste / V_max"},
+    unidades={"[S]": "mM", "v₀ medida": "µM/s", "v₀ del ajuste": "µM/s", "residuo": "µM/s"},
+    formatos={"[S]": "{:g}", "v₀ medida": "{:.2f}", "v₀ del ajuste": "{:.2f}", "residuo": "{:+.2f}", "fracción ocupada": "{:.0%}"},
+    resaltar={int(np.argmin(np.abs(S_mM - aj["km"]))): ("≈ K_M", "naranja")}, barra="v₀ medida")
+viz.mostrar(fig, datos_exp, viz.tarjetas([
     ("V_max", f"{aj['vmax']:.2f}", f"± {aj['vmax_err']:.2f} µM/s", "la meseta: toda la enzima ocupada", "azul"),
     ("K_M", f"{aj['km']:.2f}", f"± {aj['km_err']:.2f} mM", f"[S] a media velocidad (R² = {aj['r2']:.4f})", "naranja"),
     ("k_cat = V_max/[E]₀", f"{kc['kcat']:.0f}", "s⁻¹", f"una reacción cada {cin.turnover_time(kc['kcat'])*1000:.0f} ms por enzima", "agua"),
@@ -183,7 +212,20 @@ code(r'''
 fig = viz.plot_linearizations(S_mM, v_obs, title="Tres maneras de convertir la hipérbola en una recta",
                               subtitle="Los cortes con los ejes (puntos grises) dan V_max y K_M; círculos naranjas: los puntos que más distorsionan Lineweaver–Burk")
 lb = cin.linear_fit(*cin.lineweaver_burk(S_mM, v_obs))
-viz.mostrar(fig, viz.tarjetas([
+tabla_lin = pd.DataFrame({"[S]": S_mM, "v₀": v_obs, "1/[S]": 1 / S_mM, "1/v₀": 1 / v_obs,
+                          "v₀/[S]": v_obs / S_mM, "[S]/v₀": S_mM / v_obs})
+datos_lin = viz.datos(
+    tabla_lin, "las tres linealizaciones",
+    "Los mismos 12 tubos, transformados. Cada gráfico usa un par de columnas: Lineweaver–Burk dibuja 1/v₀ frente a "
+    "1/[S]; Eadie–Hofstee, v₀ frente a v₀/[S]; Hanes–Woolf, [S]/v₀ frente a [S]. Fíjate en las dos primeras filas: "
+    "con poca glucosa, 1/[S] y 1/v₀ se disparan y esos puntos, los más ruidosos, dominan la recta de Lineweaver–Burk.",
+    calculadas={"1/[S]": "1 ÷ [S]  (eje x de Lineweaver–Burk)", "1/v₀": "1 ÷ v₀  (eje y de Lineweaver–Burk)",
+                "v₀/[S]": "v₀ ÷ [S]  (eje x de Eadie–Hofstee; su eje y es v₀)",
+                "[S]/v₀": "[S] ÷ v₀  (eje y de Hanes–Woolf; su eje x es [S])"},
+    unidades={"[S]": "mM", "v₀": "µM/s", "1/[S]": "mM⁻¹", "1/v₀": "s/µM", "v₀/[S]": "µM·s⁻¹/mM", "[S]/v₀": "mM·s/µM"},
+    formatos={"[S]": "{:g}", "v₀": "{:.2f}", "1/[S]": "{:.3f}", "1/v₀": "{:.3f}", "v₀/[S]": "{:.3f}", "[S]/v₀": "{:.3f}"},
+    resaltar={0: ("pesa mucho en L‑B", "naranja"), 1: ("pesa mucho en L‑B", "naranja")}, barra="1/v₀")
+viz.mostrar(fig, datos_lin, viz.tarjetas([
     ("V_max por Lineweaver–Burk", f"{1/lb['intercept']:.2f}", "µM/s", f"ajuste no lineal: {aj['vmax']:.2f}", "gris"),
     ("K_M por Lineweaver–Burk", f"{lb['slope']/lb['intercept']:.2f}", "mM", f"ajuste no lineal: {aj['km']:.2f}", "gris"),
 ], titulo="Lineweaver–Burk frente al ajuste no lineal",
