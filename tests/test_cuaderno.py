@@ -92,13 +92,25 @@ _PERMITIDO = re.compile(r"Valentínová|Šimčíková|Cárdenas|Viñuela|Wolfend
                         r"cin\.|datos\.|viz\.|visor3d\.|interactivo\.|rapido|completo|valor\(|ref\b")
 
 
+_CLAVES_DE_DATOS = {"enzima", "agua", "rapido", "completo"}      # argumentos/claves internas, no texto visible
+
+
+def _textos_del_codigo(fuente):
+    lineas = [l for l in fuente.splitlines() if not l.lstrip().startswith(("%", "!"))]
+    textos = []
+    for nodo in ast.walk(ast.parse("\n".join(lineas))):
+        if isinstance(nodo, ast.Constant) and isinstance(nodo.value, str) and nodo.value not in _CLAVES_DE_DATOS:
+            textos.extend(nodo.value.splitlines())
+    return textos
+
+
 @pytest.mark.skipif("en" not in IDIOMAS, reason="cuaderno en inglés aún no construido")
 def test_ingles_sin_restos_de_espanol():
     restos = []
     for c in _nb("en").cells:
         texto = re.sub(r"data:image/png;base64,[A-Za-z0-9+/=]+", "", c.source)
-        if c.cell_type == "code":          # en el código solo cuentan el título y los textos que ve el estudiante
-            texto = "\n".join(l for l in texto.splitlines() if l.startswith("# @title") or '"' in l or "'" in l)
+        if c.cell_type == "code":          # en el código solo cuentan el título y los textos (no los nombres de variables)
+            texto = "\n".join([c.source.splitlines()[0]] + _textos_del_codigo(c.source))
         for linea in texto.splitlines():
             limpia = _PERMITIDO.sub("", linea)
             if _ESPANOL.search(limpia):

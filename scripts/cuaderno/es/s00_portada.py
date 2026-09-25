@@ -107,7 +107,7 @@ for nombre in [m for m in sys.modules if m == "enzimas" or m.startswith("enzimas
     del sys.modules[nombre]
 
 from enzimas import colab_setup
-entorno = colab_setup.instalar(MODO)
+entorno = colab_setup.instalar(MODO, idioma="es")
 ''')
 
 code(r'''

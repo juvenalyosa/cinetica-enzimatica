@@ -28,6 +28,7 @@ from pathlib import Path
 import numpy as np
 
 from . import datos
+from .textos import idioma as _idioma, t as _t
 
 URL_3DMOL = "https://cdn.jsdelivr.net/npm/3dmol@2.4.2/build/3Dmol-min.js"
 DESPLAZAMIENTO = 4                     # numeración de tleap = cristal − 4
@@ -148,7 +149,8 @@ def _html(config, alto=560):
 
     uid = f"enz3d{next(_contador)}"
     cfg = json.dumps(config, separators=(",", ":"), ensure_ascii=False)
-    return HTML(_PLANTILLA.replace("__UID__", uid).replace("__ALTO__", str(alto)).replace("__URL__", URL_3DMOL)
+    plantilla = _PLANTILLA if _idioma() == "es" else _plantilla_traducida()
+    return HTML(plantilla.replace("__UID__", uid).replace("__ALTO__", str(alto)).replace("__URL__", URL_3DMOL)
                 .replace("__CFG__", cfg.replace("</", "<\\/")))
 
 
@@ -199,7 +201,7 @@ def _enlaces_dinamicos(topo, frames, nuevo):
 def _etiquetas_qm(topo, nuevo):
     """[índice, texto, desplazamiento x, desplazamiento y en píxeles] de los átomos protagonistas."""
     d = topo["destacados"]
-    return [[nuevo[d["PG"]], "Pγ", 0, -26], [nuevo[d["O6"]], "O6 (glucosa)", 34, 20], [nuevo[d["O3B"]], "O3β (ATP)", -34, 20],
+    return [[nuevo[d["PG"]], "Pγ", 0, -26], [nuevo[d["O6"]], _t("O6 (glucosa)"), 34, 20], [nuevo[d["O3B"]], "O3β (ATP)", -34, 20],
             [nuevo[d["OD"]], "Asp205", 30, -18], [nuevo[d["MG"]], "Mg²⁺", 0, 28]]
 
 
@@ -257,30 +259,30 @@ def pelicula_reaccion(camino="enzima", proteina=True, titulo=None):
         dh = np.linalg.norm(f[d["H6"]] - f[d["OD"]])
         lecturas.append([f"{energia[k]:.1f} kcal/mol", f"{xi[k]:+.2f} Å", f"{d1:.2f} Å", f"{d2:.2f} Å", f"{dh:.2f} Å"])
         if abs(k - k_ts) <= 1:
-            fases.append("Estado de transición: el fósforo está a medio camino entre los dos oxígenos")
+            fases.append(_t("Estado de transición: el fósforo está a medio camino entre los dos oxígenos"))
         elif k < k_ts:
-            fases.append("Reactivo → cima: el fosfato se separa del ATP y se acerca a la glucosa")
+            fases.append(_t("Reactivo → cima: el fosfato se separa del ATP y se acerca a la glucosa"))
         elif dh > 1.3:
-            fases.append("Después de la cima: el fosfato ya está en la glucosa; el protón de O6 aún no se ha movido")
+            fases.append(_t("Después de la cima: el fosfato ya está en la glucosa; el protón de O6 aún no se ha movido"))
         else:
-            fases.append("Hacia el producto: el fosfato está en la glucosa y Asp205 empieza a tomar el protón de O6")
+            fases.append(_t("Hacia el producto: el fosfato está en la glucosa y Asp205 empieza a tomar el protón de O6"))
     R_, o_ = _orientacion_sitio()
     frames = [_girar(f, R_, o_) for f in frames]
     atomos, visibles, nuevo = _atomos_qm(topo, frames[0])
     config = dict(
         tipo="reaccion",
-        titulo=titulo or ("La reacción dentro de la enzima" if camino == "enzima" else "La reacción en agua (sin el resto de la enzima)"),
-        subtitulo="Arrastra para girar · rueda para acercar · ▶ para reproducir",
+        titulo=titulo or (_t("La reacción dentro de la enzima") if camino == "enzima" else _t("La reacción en agua (sin el resto de la enzima)")),
+        subtitulo=_t("Arrastra para girar · rueda para acercar · ▶ para reproducir"),
         modelos=[dict(atomos=atomos, frames=_b64_int16(np.array([f[visibles] for f in frames]).ravel()),
                       n=len(visibles), estilo="bola")],
         dinamicos=_enlaces_dinamicos(topo, frames, nuevo),
         etiquetas=_etiquetas_qm(topo, nuevo),
         grafica=dict(x=xi.round(3).tolist(), y=energia.round(3).tolist(), xlabel="ξ = d(Pγ–O3β) − d(Pγ–O6)  (Å)",
-                     ylabel="energía (kcal/mol)", titulo="Perfil de energía", ts=k_ts,
+                     ylabel=_t("energía (kcal/mol)"), titulo=_t("Perfil de energía"), ts=k_ts,
                      puntos=[[0, "R", AZUL], [k_ts, "TS", NARANJA], [len(xi) - 1, "P", AGUA]]),
-        lecturas=dict(nombres=["Energía", "ξ", "Pγ–O3β", "Pγ–O6", "H···O Asp205"], valores=lecturas),
+        lecturas=dict(nombres=[_t("Energía"), "ξ", "Pγ–O3β", "Pγ–O6", "H···O Asp205"], valores=lecturas),
         fases=fases,
-        leyenda=[[ROMPE, "enlace que se rompe"], [FORMA, "enlace que se forma"], [COORD, "Mg²⁺ coordinado (no covalente)"]],
+        leyenda=[[ROMPE, _t("enlace que se rompe")], [FORMA, _t("enlace que se forma")], [COORD, _t("Mg²⁺ coordinado (no covalente)")]],
     )
     if camino == "enzima" and proteina:
         pdb_env, frontera, todos = _entorno_proteina()
@@ -313,17 +315,17 @@ def modo_imaginario(n_cuadros=30, amplitud=0.35):
     freq = float(vib["freq_cm_signed"].min())
     rel = xi - xi.mean()
     config = dict(
-        tipo="reaccion", titulo=f"El modo imaginario del estado de transición ({freq:.0f} cm⁻¹)",
-        subtitulo="No es una vibración normal: hacia un lado cae al reactivo, hacia el otro al producto",
+        tipo="reaccion", titulo=_t("El modo imaginario del estado de transición ({f:.0f} cm⁻¹)").format(f=freq),
+        subtitulo=_t("No es una vibración normal: hacia un lado cae al reactivo, hacia el otro al producto"),
         modelos=[dict(atomos=atomos, frames=_b64_int16(np.array([f[visibles] for f in frames]).ravel()), n=len(visibles), estilo="bola")],
         dinamicos=_enlaces_dinamicos(topo, frames, nuevo), etiquetas=_etiquetas_qm(topo, nuevo),
-        grafica=dict(x=list(range(n_cuadros)), y=rel.round(3).tolist(), xlabel="un ciclo de la vibración",
-                     ylabel="desplazamiento en ξ (Å)", titulo="¿Hacia dónde empuja el modo?", ts=None, puntos=[],
-                     bandas_y=[[0, 10, "hacia el producto", AGUA], [-10, 0, "hacia el reactivo", AZUL]]),
-        lecturas=dict(nombres=["ξ relativo"], valores=[[f"{v:+.2f} Å"] for v in rel]),
-        fases=["El fósforo se acerca al O6 de la glucosa: hacia el producto" if v > 0 else
-               "El fósforo vuelve hacia el O3β del ATP: hacia el reactivo" for v in rel],
-        leyenda=[[ROMPE, "enlace que se rompe"], [FORMA, "enlace que se forma"], [COORD, "Mg²⁺ coordinado (no covalente)"]],
+        grafica=dict(x=list(range(n_cuadros)), y=rel.round(3).tolist(), xlabel=_t("un ciclo de la vibración"),
+                     ylabel=_t("desplazamiento en ξ (Å)"), titulo=_t("¿Hacia dónde empuja el modo?"), ts=None, puntos=[],
+                     bandas_y=[[0, 10, _t("hacia el producto"), AGUA], [-10, 0, _t("hacia el reactivo"), AZUL]]),
+        lecturas=dict(nombres=[_t("ξ relativo")], valores=[[f"{v:+.2f} Å"] for v in rel]),
+        fases=[_t("El fósforo se acerca al O6 de la glucosa: hacia el producto") if v > 0 else
+               _t("El fósforo vuelve hacia el O3β del ATP: hacia el reactivo") for v in rel],
+        leyenda=[[ROMPE, _t("enlace que se rompe")], [FORMA, _t("enlace que se forma")], [COORD, _t("Mg²⁺ coordinado (no covalente)")]],
         auto=True,
     )
     return _html(config, alto=560)
@@ -350,18 +352,18 @@ def pelicula_md(umbral=3.5, cristal=2.68):
     nucleo = [k for k, a in enumerate(peli["atomos"]) if a["r"] in ("GLC", "MG") or (a["r"] == "ATP" and a["n"][:1] in ("P", "O"))]
     zmax = float(np.percentile(frames.reshape(len(frames), -1, 3)[:, nucleo, 2].max(axis=1), 90))
     config = dict(
-        tipo="md", titulo="La película de la enzima: 1 ns de dinámica molecular",
-        subtitulo="Arrastra para girar · rueda para acercar · ▶ para reproducir",
+        tipo="md", titulo=_t("La película de la enzima: 1 ns de dinámica molecular"),
+        subtitulo=_t("Arrastra para girar · rueda para acercar · ▶ para reproducir"),
         modelos=[dict(atomos=atomos, frames=_b64_int16(frames.ravel()), n=len(atomos), estilo="md")],
         dinamicos=[[] for _ in t], etiquetas=[],
-        grafica=dict(x=t, y=dd, xlabel="tiempo (ps)", ylabel="d(Pγ–O6) (Å)", titulo="¿Se apuntan los reactivos?",
-                     ts=None, puntos=[], bandas_y=[[0, umbral, f"ataque cercano (< {umbral} Å)", AGUA]],
-                     linea_y=[cristal, f"cristal {cristal} Å"]),
-        lecturas=dict(nombres=["tiempo", "d(Pγ–O6)"], valores=[[f"{a:.0f} ps", f"{b:.2f} Å"] for a, b in zip(t, dd)]),
-        fases=["Lista para reaccionar: el fósforo del ATP apunta al O6 de la glucosa" if b < umbral else
-               "Un momento de separación: los reactivos se alejan un poco" for b in dd],
-        leyenda=[[CARBONO["glc"], "glucosa"], [CARBONO["atp"], "ATP"], [ELEMENTOS["Mg"], "Mg²⁺"],
-                 ["#7f9cc9", "dominio grande"], ["#e2a2c3", "dominio pequeño"]],
+        grafica=dict(x=t, y=dd, xlabel=_t("tiempo (ps)"), ylabel="d(Pγ–O6) (Å)", titulo=_t("¿Se apuntan los reactivos?"),
+                     ts=None, puntos=[], bandas_y=[[0, umbral, _t("ataque cercano (< {u} Å)").format(u=umbral), AGUA]],
+                     linea_y=[cristal, _t("cristal {c} Å").format(c=cristal)]),
+        lecturas=dict(nombres=[_t("tiempo"), "d(Pγ–O6)"], valores=[[f"{a:.0f} ps", f"{b:.2f} Å"] for a, b in zip(t, dd)]),
+        fases=[_t("Lista para reaccionar: el fósforo del ATP apunta al O6 de la glucosa") if b < umbral else
+               _t("Un momento de separación: los reactivos se alejan un poco") for b in dd],
+        leyenda=[[CARBONO["glc"], _t("glucosa")], [CARBONO["atp"], "ATP"], [ELEMENTOS["Mg"], "Mg²⁺"],
+                 ["#7f9cc9", _t("dominio grande")], ["#e2a2c3", _t("dominio pequeño")]],
         corte=[zmax + 1.5, 40.0],
     )
     return _html(config, alto=600)
@@ -376,12 +378,12 @@ def complejo_cristal(pdb_texto=None):
     # misma puesta en escena que los demás visores: la hendidura mira a la cámara
     R_, o_ = _orientacion(_leer_pdb("\n".join(lineas)), ("BGC", "O6"), ("ANP", "N3B"), de_frente=True)
     lineas = _pdb_girado(lineas, R_, o_)
-    config = dict(distancias=_distancias_cristal(lineas), giro_sitio=_giro_sitio(lineas), tipo="complejo", titulo="La glucoquinasa humana (cristal 3FGU)",
-                  subtitulo="Arrastra para girar · rueda para acercar · botones para cambiar la vista",
+    config = dict(distancias=_distancias_cristal(lineas), giro_sitio=_giro_sitio(lineas), tipo="complejo", titulo=_t("La glucoquinasa humana (cristal 3FGU)"),
+                  subtitulo=_t("Arrastra para girar · rueda para acercar · botones para cambiar la vista"),
                   pdb="\n".join(lineas),
-                  leyenda=[["#7f9cc9", "dominio grande"], ["#e2a2c3", "dominio pequeño"], [CARBONO["glc"], "glucosa"],
-                           [CARBONO["atp"], "AMP‑PNP (análogo del ATP)"], [ELEMENTOS["Mg"], "Mg²⁺"]],
-                  residuos=[[205, "Asp205 · base"], [169, "Lys169"], [228, "Thr228"], [151, "Ser151"]])
+                  leyenda=[["#7f9cc9", _t("dominio grande")], ["#e2a2c3", _t("dominio pequeño")], [CARBONO["glc"], _t("glucosa")],
+                           [CARBONO["atp"], _t("AMP‑PNP (análogo del ATP)")], [ELEMENTOS["Mg"], "Mg²⁺"]],
+                  residuos=[[205, _t("Asp205 · base")], [169, "Lys169"], [228, "Thr228"], [151, "Ser151"]])
     return _html(config, alto=560)
 
 
@@ -442,7 +444,7 @@ def _distancias_cristal(lineas):
         if a is None or b is None:
             continue
         salida.append(dict(a=a.round(3).tolist(), b=b.round(3).tolist(), color=color,
-                           texto=f"{nombre}  {np.linalg.norm(a - b):.2f} Å", na=na, nb=nb))
+                           texto=f"{_t(nombre)}  {np.linalg.norm(a - b):.2f} Å", na=na, nb=nb))
     return salida
 
 
@@ -455,12 +457,12 @@ def region_qm():
     atomos, visibles, nuevo = _atomos_qm(topo, xyz)
     env = _leer_pdb(Path(datos.ruta("qmmm/entorno_mm_8A.pdb")).read_text())
     cargas = [[*_girar([[a["x"], a["y"], a["z"]]], R_, o_)[0].round(2).tolist(), round(a["q"], 2)] for a in env if abs(a["q"]) > 0.3]
-    config = dict(tipo="region", titulo="QM/MM: la región cuántica dentro de la enzima",
-                  subtitulo="Bolas y varillas = región QM (PM7) · esferas rojas/azules = cargas de la enzima (−/+)",
+    config = dict(tipo="region", titulo=_t("QM/MM: la región cuántica dentro de la enzima"),
+                  subtitulo=_t("Bolas y varillas = región QM (PM7) · esferas rojas/azules = cargas de la enzima (−/+)"),
                   modelos=[dict(atomos=atomos, frames=None, n=len(visibles), estilo="bola")],
                   cargas=cargas, etiquetas=_etiquetas_qm(topo, nuevo), dinamicos=[_enlaces_dinamicos(topo, [xyz], nuevo)[0]],
-                  leyenda=[[ROJO, "carga negativa de la enzima"], [AZUL, "carga positiva de la enzima"],
-                           [CARBONO["glc"], "glucosa"], [CARBONO["atp"], "trifosfato"]])
+                  leyenda=[[ROJO, _t("carga negativa de la enzima")], [AZUL, _t("carga positiva de la enzima")],
+                           [CARBONO["glc"], _t("glucosa")], [CARBONO["atp"], _t("trifosfato")]])
     return _html(config, alto=540)
 
 
@@ -713,3 +715,37 @@ load(function($3Dmol){
 })();
 </script>
 """
+
+
+# Textos de la plantilla JS (literales entre comillas dobles). En inglés se sustituye cada uno por su traducción;
+# en español la plantilla no se toca, así la salida es idéntica byte a byte.
+_TEXTOS_JS = [
+    'No se pudo cargar 3Dmol.js (¿sin conexión a internet?). Vuelve a ejecutar la celda.',
+    'Toda la enzima',
+    'Sitio activo',
+    'Superficie',
+    'Girar',
+    'Distancias',
+    "<div style='font-weight:650;color:#e8ecf3;font-size:15px;margin-bottom:6px'>Qué estás viendo</div>",
+    '▶  Reproducir',
+    '⏸  Pausa',
+    'Etiquetas',
+    'Proteína',
+    'Centrar',
+    'Error en el visor 3D: ',
+    "Las cintas son la cadena de la proteína: <b style='color:#9fb6de'>dominio grande</b> y <b style='color:#efb3d1'>dominio pequeño</b>. ",
+    "En la hendidura entre ambos están la <b style='color:#ffb38a'>glucosa</b> y el <b style='color:#ffd27a'>ATP</b> (aquí AMP‑PNP), con el <b style='color:#3ddc84'>Mg²⁺</b>.<br><br>",
+    'Pulsa <b>Sitio activo</b> para acercarte: verás Asp205, la base que tomará el protón de la glucosa. ',
+    '<b>Superficie</b> muestra la forma de la proteína: la glucosa queda casi enterrada.<br><br>',
+    'Las <b>líneas discontinuas</b> son las distancias medidas en el cristal (las mismas que calcula la celda siguiente): ',
+    'En <b>bolas y varillas</b>, los 78 átomos que se tratan con mecánica cuántica (PM7): glucosa, trifosfato, Mg²⁺ con su agua ',
+    "y las cadenas laterales de Asp205, Lys169 y Thr228.<br><br>Las <b style='color:#ff8a8a'>esferas rojas</b> y <b style='color:#8ab4ff'>azules</b> son ",
+    'cargas negativas y positivas de la enzima (región MM): sus electrones no se calculan, pero su campo eléctrico sí entra en el cálculo cuántico.',
+]
+
+
+def _plantilla_traducida():
+    plantilla = _PLANTILLA
+    for texto in _TEXTOS_JS:
+        plantilla = plantilla.replace('"' + texto + '"', json.dumps(_t(texto), ensure_ascii=False))
+    return plantilla

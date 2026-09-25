@@ -7,6 +7,8 @@ concentración de sustrato ``s`` aceptan escalares o arreglos de numpy.
 
 from __future__ import annotations
 
+import re
+
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.optimize import curve_fit
@@ -446,7 +448,7 @@ def glucokinase_reference():
     """
     V12 = "Valentínová et al., PLoS One 2012, 7:e34541 (GST-GCK, 5 mM ATP)"
     S09 = "Sayed et al., Diabetes 2009, 58:1419 (GST-GCK purificada)"
-    return {
+    return _traducir_referencia({
         "enzyme": "glucoquinasa humana (hexoquinasa IV, GCK)",
         "s_half_mm": {"label": "S₀.₅ (glucosa)", "value": 7.69, "unit": "mM", "conditions": "silvestre, 0-100 mM glucosa, 5 mM ATP",
                       "source": V12, "approx": True, "alt": {"value": 7.6, "source": S09}},
@@ -526,7 +528,35 @@ def glucokinase_reference():
             "(acoplados a G6PDH, proteínas de fusión GST, temperatura no siempre indicada). Todos los números son "
             "aproximados (approx) y deben verificarse contra las fuentes primarias antes de usarse cuantitativamente."
         ),
-    }
+    })
+
+
+# Campos de glucokinase_reference() que el estudiante lee (se traducen si el curso está en inglés); las fuentes
+# bibliográficas, los nombres de mutantes y los tipos de inhibición en inglés ("competitive"…) se dejan tal cual.
+_CAMPOS_TEXTO = {"enzyme", "label", "unit", "conditions", "name", "versus", "ki", "note", "s_half_factor",
+                 "vmax_factor", "mutants_source", "notes"}
+_NO_TRADUCIR = {"competitive", "uncompetitive", "noncompetitive", "mixed", "none", "slow-binding", "GCK-MODY", "mM", "s⁻¹",
+                "kcal/mol", "pH", ""}
+
+
+def _traducir_referencia(ref):
+    from .textos import idioma, t
+
+    if idioma() == "es":
+        return ref
+
+    def tr(valor, clave=None):
+        if isinstance(valor, dict):
+            return {k: tr(v, k) for k, v in valor.items()}
+        if isinstance(valor, list):
+            return [tr(v, clave) for v in valor]
+        if isinstance(valor, str) and valor not in _NO_TRADUCIR and not re.fullmatch(r"[A-Z]\d+[A-Z]", valor):
+            if clave in _CAMPOS_TEXTO or (clave == "kind" and valor.startswith("activadora")) or \
+                    (clave == "source" and valor == "aritmética nuestra") or (clave == "references" and "métodos" in valor):
+                return t(valor)
+        return valor
+
+    return tr(ref)
 
 # ---------------------------------------------------------------------------
 # 9. Inhibidores: Dixon, Cheng–Prusoff, IC50 y gráficos secundarios

@@ -90,7 +90,7 @@ if T_ref in termo:
          ("ΔS‡ vibracional", f"{t['dS_vib_cal']:+.1f}", "cal/mol/K", f"TS más rígido → −TΔS‡ = {-298.15 * t['dS_vib_cal'] / 1000:+.2f} kcal/mol", "magenta"),
          ("ΔG‡ a 25 °C", f"{t['dG_kcal']:.2f}", "kcal/mol", f"ΔH‡ = {t['dH_kcal']:.2f} kcal/mol", "naranja")],
         titulo="Termoquímica armónica (átomos libres de la región QM)",
-        nota=" · ".join(extra) + ("  —  " + termo["nota"] if termo.get("nota") else "")))
+        nota=" · ".join(extra) + ("  —  " + textos.t(termo["nota"]) if termo.get("nota") else "")))
 else:
     display(viz.mensaje("Termoquímica no disponible en estos datos.", "ojo"))
 ''')
@@ -109,7 +109,7 @@ try:
         else:
             que = (f"sin producto estable: la energía sube hasta {r['escaneo_max_rel_kcal']:.0f} kcal/mol en ξ = {r['xi_max']:.1f} Å; "
                    f"el H del O6 está a {r['d_OD1_H_reactivo']:.1f} Å de Asp205")
-        filas.append((r["instantanea"], b if _hay(b) else np.nan, r.get("ts_d_PG_O6", np.nan), r.get("ts_d_PG_O3B", np.nan), que))
+        filas.append((textos.t(r["instantanea"]), b if _hay(b) else np.nan, r.get("ts_d_PG_O6", np.nan), r.get("ts_d_PG_O3B", np.nan), que))
     df_inst = pd.DataFrame(filas, columns=["conformación", "ΔE‡ (kcal/mol)", "d(Pγ–O6) TS (Å)", "d(Pγ–O3β) TS (Å)", "¿qué pasó?"])
     ok = df_inst.dropna(subset=["ΔE‡ (kcal/mol)"])
     media, sd = ok["ΔE‡ (kcal/mol)"].mean(), ok["ΔE‡ (kcal/mol)"].std(ddof=1) if len(ok) > 1 else 0.0
@@ -123,8 +123,8 @@ try:
                                formatos={"ΔE‡ (kcal/mol)": "{:.1f}", "d(Pγ–O6) TS (Å)": "{:.2f}", "d(Pγ–O3β) TS (Å)": "{:.2f}"},
                                nota="«—»: no hay estado de transición que medir, porque sin producto estable no hay cima entre dos valles."),
                 viz.datos(esc_inst.pivot_table(index="punto", columns="instantanea", values="energia_rel_kcal", sort=False)
-                          .reset_index().assign(**{"ξ (media)": esc_inst.groupby("punto")["xi"].mean().values})
-                          [["punto", "ξ (media)"] + list(dict.fromkeys(esc_inst["instantanea"]))],
+                          .reset_index().rename(columns={"punto": textos.t("punto")}).assign(**{"ξ (media)": esc_inst.groupby("punto")["xi"].mean().values})
+                          [[textos.t("punto"), "ξ (media)"] + list(dict.fromkeys(esc_inst["instantanea"]))],
                           "las curvas rojas",
                           "Cada fila es un punto del escaneo (ξ fijado cada vez más a la derecha); cada columna, una conformación "
                           "de la MD. En ninguna columna la energía llega a un máximo y vuelve a bajar: no hay cima ni valle de producto.",
@@ -159,7 +159,7 @@ colores = {"PM7": "azul", "PM6-D3H4": "magenta"}
 items = [(f"{nombre}//PM7", f"{d['barrera_kcal']:.1f}", "kcal/mol de barrera",
           f"ΔE(reacción) = {d['dE_reaccion_kcal']:+.1f} kcal/mol", colores.get(nombre, "gris"))
          for nombre, d in met.items() if isinstance(d, dict)]
-viz.tarjetas(items, titulo="Las mismas geometrías, dos hamiltonianos semiempíricos", nota=met.get("nota", ""))
+viz.tarjetas(items, titulo="Las mismas geometrías, dos hamiltonianos semiempíricos", nota=textos.t(met.get("nota", "")))
 ''')
 
 md(r"""

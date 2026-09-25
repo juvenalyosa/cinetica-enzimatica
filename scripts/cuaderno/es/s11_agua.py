@@ -67,7 +67,7 @@ code(r'''
 agua = res["etapas"]["agua"]
 display(viz.tarjetas(
     [("1 · SADDLE (QST2)", f"{agua['barrera_saddle_qst2_kcal']:.1f}", "kcal/mol", f"primera estimación del TS, ξ = {agua['saddle_xi']:+.2f} Å", "gris"),
-     ("2 · TS refinado", f"{agua['barrera_kcal']:.1f}", "kcal/mol", agua["metodo_ts"], "naranja"),
+     ("2 · TS refinado", f"{agua['barrera_kcal']:.1f}", "kcal/mol", textos.t(agua["metodo_ts"]), "naranja"),
      ("Geometría del TS", f"{agua['ts_d_PG_O6']:.2f} / {agua['ts_d_PG_O3B']:.2f}", "Å",
       f"Pγ···O6 / Pγ···O3β; el O6–H sigue en {agua['ts_d_O6_H']:.2f} Å", "azul"),
      ("ΔE de reacción", f"{agua['dE_reaccion']:+.1f}", "kcal/mol", "en agua la reacción es cuesta abajo", "agua")],

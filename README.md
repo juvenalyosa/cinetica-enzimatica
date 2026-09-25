@@ -3,6 +3,13 @@
 [![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/juvenalyosa/cinetica-enzimatica/blob/main/notebooks/Cinetica_Enzimatica_Glucoquinasa.ipynb)
 [![Licencia MIT](https://img.shields.io/badge/licencia-MIT-blue.svg)](LICENSE)
 
+> **🇬🇧 English version:** the same course, cell for cell, in English —
+> [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/juvenalyosa/cinetica-enzimatica/blob/main/notebooks/Enzyme_Kinetics_Glucokinase.ipynb)
+> `notebooks/Enzyme_Kinetics_Glucokinase.ipynb`. Enzyme kinetics from scratch with a real enzyme (human
+> glucokinase, PDB 3FGU): molecular dynamics, QM/MM reaction path and transition state, Eyring, Michaelis–Menten,
+> Hill cooperativity, inhibition, temperature and pH — with illustrated analogies, interactive sliders, 3D viewers
+> synchronized with the energy profile, and the data table behind every plot.
+
 Curso abierto, en español, que explica la cinética enzimática **desde cero** usando una
 enzima real, la **glucoquinasa humana** (hexoquinasa IV, EC 2.7.1.2), y simulaciones
 moleculares que el estudiante ejecuta celda a celda en Google Colab:
@@ -84,17 +91,21 @@ tests/       pytest
 
 ## Cómo editar el curso
 
-El notebook no se edita a mano: se genera. Todas las celdas de código son formularios de Colab
+Los notebooks no se editan a mano: se generan (español en `scripts/cuaderno/es/`, inglés en
+`scripts/cuaderno/en/`; el código de las celdas es idéntico y lo comprueba un test). Los textos de la biblioteca
+pasan por `enzimas.textos.t()` y se traducen en `enzimas/traducciones_en.py`; los de las ilustraciones, en
+`scripts/ilustraciones/traduccion_en.py`. Todas las celdas de código son formularios de Colab
 (`# @title`): el estudiante ve solo el título y el resultado, y los valores que puede cambiar
 aparecen como deslizadores (`# @param`).
 
 ```bash
-python scripts/04_ilustraciones.py     # redibuja assets/ilustraciones (requiere rsvg-convert)
-python scripts/construir_notebook.py   # reconstruye el notebook e incrusta los PNG
+python scripts/04_ilustraciones.py               # redibuja assets/ilustraciones/es (requiere rsvg-convert)
+python scripts/04_ilustraciones.py --idioma en   # … y assets/ilustraciones/en
+python scripts/construir_notebook.py             # reconstruye los dos notebooks e incrusta los PNG
 ```
 
 En el texto de una sección, `[[fig:nombre | texto alternativo]]` inserta la ilustración
-`assets/ilustraciones/nombre.png`. Va incrustada en el notebook, así que se ve en Colab sin conexión
+`assets/ilustraciones/<idioma>/nombre.png`. Va incrustada en el notebook, así que se ve en Colab sin conexión
 y sin rutas relativas.
 
 ## Cómo se generaron los datos precalculados

@@ -41,6 +41,7 @@ from IPython.display import display
 
 from . import kinetics as kin
 from . import viz
+from .textos import t as _t
 from .viz import AXIS, COLORS, INK, INK_MUTED, INK_SECONDARY, PALETTE, figure
 
 __all__ = [
@@ -68,9 +69,9 @@ _FONT = "Figtree, 'Avenir Next', 'Segoe UI', Roboto, Helvetica, Arial, sans-seri
 
 
 def _slider(description, value, lo, hi, step, fmt=".2f", log=False):
-    """Deslizador con etiqueta completa en español, ancho cómodo y redibujado al soltar."""
+    """Deslizador con etiqueta completa (en el idioma del curso), ancho cómodo y redibujado al soltar."""
     common = dict(
-        value=value, description=description, continuous_update=False, readout_format=fmt,
+        value=value, description=_t(description), continuous_update=False, readout_format=fmt,
         style={"description_width": "210px", "handle_color": viz.PALETTE[0]},
         layout=widgets.Layout(width="460px", margin="2px 18px 2px 0"),
     )
@@ -88,8 +89,8 @@ def _mostrar(obj):
 def _cabecera(titulo, instruccion):
     return widgets.HTML(
         f'<div style="font-family:{_FONT};margin:0 0 6px 2px">'
-        f'<div style="font-size:16px;font-weight:650;color:{INK}">🎛️ {titulo}</div>'
-        f'<div style="font-size:13px;color:{INK_SECONDARY};margin-top:2px">{instruccion}</div></div>')
+        f'<div style="font-size:16px;font-weight:650;color:{INK}">🎛️ {_t(titulo)}</div>'
+        f'<div style="font-size:13px;color:{INK_SECONDARY};margin-top:2px">{_t(instruccion)}</div></div>')
 
 
 def _explorer(update_fn, controls, titulo=None, instruccion="Mueve los deslizadores: la gráfica y la frase de abajo se actualizan."):
@@ -111,7 +112,7 @@ def _explorer(update_fn, controls, titulo=None, instruccion="Mueve los deslizado
             estado["resumen"] = resumen
             estado["error"] = None
             if resumen:
-                _mostrar(viz.mensaje(resumen, tipo="idea", titulo="Qué dicen estos números"))
+                _mostrar(viz.mensaje(resumen, tipo="idea", titulo=_t("Qué dicen estos números")))
         except Exception as exc:
             estado["error"] = exc
             raise
@@ -139,8 +140,8 @@ def _tiempo(seconds):
         return "∞"
     scales = [
         (1e-9, "ns", 1e9), (1e-6, "µs", 1e6), (1e-3, "ms", 1e3), (1.0, "s", 1.0),
-        (60.0, "min", 1 / 60.0), (3600.0, "h", 1 / 3600.0), (86400.0, "días", 1 / 86400.0),
-        (3.15576e7, "años", 1 / 3.15576e7),
+        (60.0, "min", 1 / 60.0), (3600.0, "h", 1 / 3600.0), (86400.0, _t("días"), 1 / 86400.0),
+        (3.15576e7, _t("años"), 1 / 3.15576e7),
     ]
     chosen = scales[0]
     for threshold, unit, factor in scales:
@@ -155,7 +156,7 @@ def _num(value, decimals=1):
 
 
 def _panel_title(ax, text):
-    ax.set_title(text, loc="left", fontsize=12.5, color=INK_SECONDARY, fontweight="semibold", pad=10)
+    ax.set_title(_t(text), loc="left", fontsize=12.5, color=INK_SECONDARY, fontweight="semibold", pad=10)
 
 
 def _titulo(fig, titulo, subtitulo=None):
@@ -177,21 +178,21 @@ def _dibujar_michaelis_menten(vmax, km, s_max=60.0):
     ax1.set_xlim(0, s_max)
     ax1.set_ylim(0, 20.0 * 1.12)  # escala fija: al mover Vmax se ve crecer la curva
     if 4 * km < 0.85 * s_max:
-        viz._kband(ax1, 4 * km, s_max, "saturación", y_text=0.97)
+        viz._kband(ax1, 4 * km, s_max, _t("saturación"), y_text=0.97)
     viz._guide(ax1, "h", vmax, color=INK_SECONDARY)
     ax1.annotate(f"Vmax = {vmax:g}", xy=(1.0, vmax), xycoords=("axes fraction", "data"), xytext=(-4, 4),
                  textcoords="offset points", ha="right", va="bottom", color=INK, fontsize=11.5, fontweight="semibold")
     viz._guide(ax1, "h", vmax / 2, start=0, end=km)
     viz._guide(ax1, "v", km, start=0, end=vmax / 2)
     viz._keypoint(ax1, km, vmax / 2, COLORS["ts"])
-    ax1.annotate(f"mitad del máximo\nen [S] = Km = {km:g} mM", xy=(km, vmax / 2), xytext=(12, -6),
+    ax1.annotate(_t("mitad del máximo\nen [S] = Km = {km:g} mM").format(km=km), xy=(km, vmax / 2), xytext=(12, -6),
                  textcoords="offset points", ha="left", va="top", color=INK, fontsize=11)
     viz._finish(ax1, "[S] (mM)", "v₀ (µM/s)")
     _panel_title(ax1, "Velocidad inicial frente a sustrato")
 
     marcas = [("Km/10", km / 10), ("Km", km), ("10·Km", 10 * km)]
     if abs(km - _GLUCOSE_BLOOD_MM) > 0.4:
-        marcas.append(("glucosa en sangre (5 mM)", _GLUCOSE_BLOOD_MM))
+        marcas.append((_t("glucosa en sangre (5 mM)"), _GLUCOSE_BLOOD_MM))
     marcas = sorted(marcas, key=lambda m: m[1])
     y = np.arange(len(marcas))[::-1]
     fracs = [m[1] / (km + m[1]) for m in marcas]
@@ -205,18 +206,18 @@ def _dibujar_michaelis_menten(vmax, km, s_max=60.0):
     ax2.set_xlim(0, 100)
     ax2.set_ylim(-0.6, len(marcas) - 0.1)
     ax2.set_yticks([])
-    viz._finish(ax2, "enzima ocupada (%)", None, grid_axis=None)
+    viz._finish(ax2, _t("enzima ocupada (%)"), None, grid_axis=None)
     ax2.spines["left"].set_visible(False)
     _panel_title(ax2, "¿Qué fracción de la enzima trabaja?")
-    _titulo(fig, f"Con Km = {km:g} mM, la enzima va a media máquina cuando [S] = {km:g} mM",
-            "Izquierda: la hipérbola. Derecha: la misma idea como ocupación de la enzima, [S]/(Km + [S]).")
+    _titulo(fig, _t("Con Km = {km:g} mM, la enzima va a media máquina cuando [S] = {km:g} mM").format(km=km),
+            _t("Izquierda: la hipérbola. Derecha: la misma idea como ocupación de la enzima, [S]/(Km + [S])."))
 
     f_blood = _GLUCOSE_BLOOD_MM / (km + _GLUCOSE_BLOOD_MM)
-    resumen = (
-        f"Con Km = {km:g} mM, a [S] = {km:g} mM la enzima trabaja al 50 % de su máximo "
-        f"(v₀ = {vmax / 2:g} µM/s); a 5 mM (glucosa en sangre) trabaja al {100 * f_blood:.0f} % y "
-        f"necesita [S] = 9·Km = {9 * km:g} mM para llegar al 90 %."
-    )
+    resumen = _t(
+        "Con Km = {km:g} mM, a [S] = {km:g} mM la enzima trabaja al 50 % de su máximo "
+        "(v₀ = {v_half:g} µM/s); a 5 mM (glucosa en sangre) trabaja al {pct:.0f} % y "
+        "necesita [S] = 9·Km = {km9:g} mM para llegar al 90 %."
+    ).format(km=km, v_half=vmax / 2, pct=100 * f_blood, km9=9 * km)
     return fig, resumen
 
 
@@ -250,35 +251,35 @@ def _dibujar_mecanismo(k1, k_minus1, k2, e0, s0):
     ax1.plot(sim["t"], sim["S"], color=COLORS["sustrato"], linewidth=2.8, zorder=3)
     ax1.plot(sim["t"], sim["P"], color=COLORS["producto_p"], linewidth=2.8, zorder=3)
     k_lab = int(0.12 * len(sim["t"]))
-    ax1.annotate("S (sustrato) se gasta", xy=(sim["t"][k_lab], sim["S"][k_lab]), xytext=(10, 6), textcoords="offset points",
+    ax1.annotate(_t("S (sustrato) se gasta"), xy=(sim["t"][k_lab], sim["S"][k_lab]), xytext=(10, 6), textcoords="offset points",
                  ha="left", va="bottom", color=INK, fontsize=11)
-    ax1.annotate("P (producto) se acumula", xy=(sim["t"][k_lab], sim["P"][k_lab]), xytext=(10, -6), textcoords="offset points",
+    ax1.annotate(_t("P (producto) se acumula"), xy=(sim["t"][k_lab], sim["P"][k_lab]), xytext=(10, -6), textcoords="offset points",
                  ha="left", va="top", color=INK, fontsize=11)
     ax1.set_xlim(0, t_end)
     ax1.set_ylim(0, s0 * 1.1)
-    viz._finish(ax1, "Tiempo (s)", "Concentración (µM)")
+    viz._finish(ax1, _t("Tiempo (s)"), _t("Concentración (µM)"))
     _panel_title(ax1, "La reacción completa")
 
     ax2.axvspan(0, min(t_pre, t_zoom), color=viz._tint(COLORS["ts"], 0.88), zorder=0, linewidth=0)
-    ax2.annotate("arranque", xy=(0, 0.97), xycoords=ax2.get_xaxis_transform(), xytext=(4, 0), textcoords="offset points",
+    ax2.annotate(_t("arranque"), xy=(0, 0.97), xycoords=ax2.get_xaxis_transform(), xytext=(4, 0), textcoords="offset points",
                  ha="left", va="top", color=INK_MUTED, fontsize=10.5)
-    ax2.text(0.5 * (min(t_pre, t_zoom) + t_zoom), 0.97, "estado estacionario: ES casi constante",
+    ax2.text(0.5 * (min(t_pre, t_zoom) + t_zoom), 0.97, _t("estado estacionario: ES casi constante"),
              transform=ax2.get_xaxis_transform(), ha="center", va="top", color=INK_MUTED, fontsize=10.5)
-    ax2.plot(zoom["t"], zoom["E"], color=COLORS["enzima"], linewidth=2.8, label="E (enzima libre)", zorder=3)
-    ax2.plot(zoom["t"], zoom["ES"], color=COLORS["complejo_es"], linewidth=2.8, label="ES (complejo)", zorder=3)
+    ax2.plot(zoom["t"], zoom["E"], color=COLORS["enzima"], linewidth=2.8, label=_t("E (enzima libre)"), zorder=3)
+    ax2.plot(zoom["t"], zoom["ES"], color=COLORS["complejo_es"], linewidth=2.8, label=_t("ES (complejo)"), zorder=3)
     ax2.set_xlim(0, t_zoom)
     ax2.set_ylim(0, e0 * 1.18)
-    viz._finish(ax2, "Tiempo (s)", "Concentración (µM)")
+    viz._finish(ax2, _t("Tiempo (s)"), _t("Concentración (µM)"))
     _panel_title(ax2, "Zoom a los primeros instantes: la enzima")
     viz._legend(ax2, loc="center right")
-    _titulo(fig, f"ES se estabiliza en {_tiempo(t_pre)} y la enzima produce a v₀ = {sim['v0']:.3g} µM/s",
-            "La hipótesis del estado estacionario (ES constante) es la base de Michaelis–Menten.")
+    _titulo(fig, _t("ES se estabiliza en {tp} y la enzima produce a v₀ = {v0:.3g} µM/s").format(tp=_tiempo(t_pre), v0=sim["v0"]),
+            _t("La hipótesis del estado estacionario (ES constante) es la base de Michaelis–Menten."))
 
-    resumen = (
-        f"Km = (k₋₁ + k₂)/k₁ = {km:.3g} µM; kcat = k₂ = {k2:.3g} s⁻¹; Vmax = kcat·[E]₀ = {vmax:.3g} µM/s. "
-        f"Con [S]₀ = {s0:g} µM ({s0 / km:.2g}·Km) la v₀ simulada es {sim['v0']:.3g} µM/s "
-        f"({100 * sim['v0'] / vmax:.0f} % de Vmax); el estado estacionario de ES se alcanza en ≈ {_tiempo(t_pre)}."
-    )
+    resumen = _t(
+        "Km = (k₋₁ + k₂)/k₁ = {km:.3g} µM; kcat = k₂ = {k2:.3g} s⁻¹; Vmax = kcat·[E]₀ = {vmax:.3g} µM/s. "
+        "Con [S]₀ = {s0:g} µM ({ratio:.2g}·Km) la v₀ simulada es {v0:.3g} µM/s "
+        "({pct:.0f} % de Vmax); el estado estacionario de ES se alcanza en ≈ {tp}."
+    ).format(km=km, k2=k2, vmax=vmax, s0=s0, ratio=s0 / km, v0=sim["v0"], pct=100 * sim["v0"] / vmax, tp=_tiempo(t_pre))
     return fig, resumen
 
 
@@ -310,8 +311,8 @@ def _dibujar_hill(s_half, n, s_max=40.0):
     s90 = kin.substrate_at_fraction(1.0, s_half, n, 0.9)
     fig = viz.plot_hill_vs_mm(
         s, v_mm, v_hill, n_hill=n, s_half=s_half, ylabel="v₀ / Vmax",
-        title=f"Con n = {n:.2g}, basta multiplicar [S] por {s90 / s10:.1f} para pasar del 10 % al 90 %",
-        subtitle="Franja naranja: la ventana 10 %–90 % de la sigmoide. Con n = 1 (hipérbola) haría falta ×81.",
+        title=_t("Con n = {n:.2g}, basta multiplicar [S] por {f:.1f} para pasar del 10 % al 90 %").format(n=n, f=s90 / s10),
+        subtitle=_t("Franja naranja: la ventana 10 %–90 % de la sigmoide. Con n = 1 (hipérbola) haría falta ×81."),
     )
     fig.set_size_inches(10.5, 5.6)
     ax = fig.axes[0]
@@ -325,10 +326,10 @@ def _dibujar_hill(s_half, n, s_max=40.0):
             ax.annotate(f"{100 * frac:.0f} %: {s_frac:.3g} mM", xy=(s_frac, frac), xytext=(8, -6),
                         textcoords="offset points", ha="left", va="top", color=INK, fontsize=10.5)
     ax.set_ylim(0, 1.08)
-    resumen = (
-        f"Con S₀.₅ = {s_half:g} mM y n = {n:.2g}, pasar del 10 % al 90 % de activación exige subir [S] "
-        f"de {s10:.3g} a {s90:.3g} mM (×{s90 / s10:.1f}); con n = 1 (hipérbola) haría falta ×81."
-    )
+    resumen = _t(
+        "Con S₀.₅ = {sh:g} mM y n = {n:.2g}, pasar del 10 % al 90 % de activación exige subir [S] "
+        "de {s10:.3g} a {s90:.3g} mM (×{f:.1f}); con n = 1 (hipérbola) haría falta ×81."
+    ).format(sh=s_half, n=n, s10=s10, s90=s90, f=s90 / s10)
     return fig, resumen
 
 
@@ -373,7 +374,7 @@ def _dibujar_inhibicion(kind, i, ki, ki_prime, vmax=_VMAX_INH, km=_KM_INH):
     viz.plot_inhibition_family(s_dense, curves_dense, kind=kind, ax=ax1, title="")
     ax1.set_ylim(0, vmax * 1.15)
     viz._guide(ax1, "h", vmax, color=INK_SECONDARY)
-    ax1.annotate("Vmax sin inhibidor", xy=(1.0, vmax), xycoords=("axes fraction", "data"), xytext=(-4, 4),
+    ax1.annotate(_t("Vmax sin inhibidor"), xy=(1.0, vmax), xycoords=("axes fraction", "data"), xytext=(-4, 4),
                  textcoords="offset points", ha="right", va="bottom", color=INK, fontsize=10.5)
     viz._keypoint(ax1, km, vmax / 2, viz.sequential_blue(2)[0], size=8)
     if i > 0:
@@ -381,7 +382,7 @@ def _dibujar_inhibicion(kind, i, ki, ki_prime, vmax=_VMAX_INH, km=_KM_INH):
         if abs(app["km_app"] - km) > 0.3:
             ax1.annotate("", xy=(app["km_app"], app["vmax_app"] / 2), xytext=(km, vmax / 2),
                          arrowprops=dict(arrowstyle="-|>", color=INK, linewidth=1.3, shrinkA=8, shrinkB=8), zorder=8)
-        ax1.annotate("Km aparente", xy=(app["km_app"], app["vmax_app"] / 2), xytext=(10, -8), textcoords="offset points",
+        ax1.annotate(_t("Km aparente"), xy=(app["km_app"], app["vmax_app"] / 2), xytext=(10, -8), textcoords="offset points",
                      ha="left", va="top", color=INK, fontsize=10.5, fontweight="semibold")
     _panel_title(ax1, "v₀ frente a [S]: puntos = (Km, Vmax/2)")
     viz.plot_inhibition_lineweaver(s_points, curves_points, kind=kind, ax=ax2, title="", subtitle="")
@@ -389,15 +390,16 @@ def _dibujar_inhibicion(kind, i, ki, ki_prime, vmax=_VMAX_INH, km=_KM_INH):
 
     ratio_v = app["vmax_app"] / vmax
     ratio_k = app["km_app"] / km
-    nombre = next(name for name, key in _INHIBITION_OPTIONS if key == kind)
-    _titulo(fig, f"Inhibición {nombre}: Vmax ×{ratio_v:.2f}, Km aparente ×{ratio_k:.2f}",
-            f"En Lineweaver–Burk {viz._INHIBITION_LB_PATTERN[kind]}.")
+    nombre = _t(viz._INHIBITION_NAMES[kind])
+    patron = _t(viz._INHIBITION_LB_PATTERN[kind])
+    _titulo(fig, _t("{nombre}: Vmax ×{rv:.2f}, Km aparente ×{rk:.2f}").format(nombre=nombre, rv=ratio_v, rk=ratio_k),
+            _t("En Lineweaver–Burk {patron}.").format(patron=patron))
     ki_text = f"Ki = {ki:g} mM" + (f", Ki′ = {ki_prime:g} mM" if kind == "mixed" else "")
-    resumen = (
-        f"Inhibición {nombre} con [I] = {i:g} mM y {ki_text}: "
-        f"Vmax_app = {app['vmax_app']:.3g} µM/s (×{ratio_v:.2f}), Km_app = {app['km_app']:.3g} mM (×{ratio_k:.2f}). "
-        f"En Lineweaver–Burk {viz._INHIBITION_LB_PATTERN[kind]}."
-    )
+    resumen = _t(
+        "{nombre} con [I] = {i:g} mM y {ki_text}: "
+        "Vmax_app = {va:.3g} µM/s (×{rv:.2f}), Km_app = {ka:.3g} mM (×{rk:.2f}). "
+        "En Lineweaver–Burk {patron}."
+    ).format(nombre=nombre, i=i, ki_text=ki_text, va=app["vmax_app"], rv=ratio_v, ka=app["km_app"], rk=ratio_k, patron=patron)
     return fig, resumen
 
 
@@ -410,7 +412,7 @@ def explorar_inhibicion(kind="competitive", i=2.0, ki=1.0, ki_prime=4.0):
     ``(Km, Vmax/2)``), y Lineweaver–Burk; resume ``Vmax_app`` y ``Km_app``.
     """
     kind_widget = widgets.Dropdown(
-        options=_INHIBITION_OPTIONS, value=kind, description="Tipo de inhibidor",
+        options=[(_t(name), key) for name, key in _INHIBITION_OPTIONS], value=kind, description=_t("Tipo de inhibidor"),
         style={"description_width": "210px"}, layout=widgets.Layout(width="460px", margin="2px 18px 2px 0"),
     )
     controls = {
@@ -449,19 +451,20 @@ def _dibujar_eyring(delta_g, temperature):
     ax1.set_ylim(k_grid.min() / 10, k_grid.max() * 10)
     for k_ref, texto in _REFERENCIAS_K:
         ax1.axhline(k_ref, color=AXIS, linewidth=1.0, linestyle=(0, (2, 3)), zorder=2)
-        ax1.annotate(texto, xy=(5.0, k_ref), xytext=(6, 3), textcoords="offset points", ha="left", va="bottom",
+        ax1.annotate(_t(texto), xy=(5.0, k_ref), xytext=(6, 3), textcoords="offset points", ha="left", va="bottom",
                      color=INK_MUTED, fontsize=10)
     viz._guide(ax1, "h", k, start=5.0, end=delta_g)
     viz._guide(ax1, "v", delta_g, start=k_grid.min() / 10, end=k)
     viz._keypoint(ax1, delta_g, k, COLORS["ts"], size=11)
     ax1.annotate(f"k = {k:.3g} s⁻¹", xy=(delta_g, k), xytext=(12, 8), textcoords="offset points",
                  ha="left", va="bottom", color=INK, fontsize=12, fontweight="semibold")
-    viz._finish(ax1, "ΔG‡: altura de la colina (kcal/mol)", "k (s⁻¹, escala log)")
-    _panel_title(ax1, f"k = (kB·T/h)·exp(−ΔG‡/RT) a {temperature:g} K ({temperature - 273.15:.0f} °C)")
+    viz._finish(ax1, _t("ΔG‡: altura de la colina (kcal/mol)"), _t("k (s⁻¹, escala log)"))
+    ax1.set_title(_t("k = (kB·T/h)·exp(−ΔG‡/RT) a {tk:g} K ({tc:.0f} °C)").format(tk=temperature, tc=temperature - 273.15),
+                  loc="left", fontsize=12.5, color=INK_SECONDARY, fontweight="semibold", pad=10)
 
     bars_dg = [delta_g - decade, delta_g, delta_g + decade]
     bars_k = [float(kin.eyring_rate(x, temperature)) for x in bars_dg]
-    labels = [f"{_num(bars_dg[0], 2)}\n(−{decade:.2f})", f"{_num(delta_g, 2)}\n(la tuya)", f"{_num(bars_dg[2], 2)}\n(+{decade:.2f})"]
+    labels = [f"{_num(bars_dg[0], 2)}\n(−{decade:.2f})", f"{_num(delta_g, 2)}\n" + _t("(la tuya)"), f"{_num(bars_dg[2], 2)}\n(+{decade:.2f})"]
     colors = [viz._tint(COLORS["datos"], 0.35), COLORS["ts"], viz._tint(COLORS["datos"], 0.35)]
     ax2.bar(range(3), bars_k, color=colors, width=0.62, zorder=2)
     ax2.set_yscale("log")
@@ -471,16 +474,17 @@ def _dibujar_eyring(delta_g, temperature):
         ax2.annotate(f"{kk:.3g} s⁻¹" + (f"\n{tag}" if tag else ""), xy=(x, kk), xytext=(0, 5), textcoords="offset points",
                      ha="center", va="bottom", color=INK, fontsize=10.5, fontweight="semibold" if not tag else "normal")
     ax2.set_ylim(min(bars_k) / 30.0, max(bars_k) * 60.0)
-    viz._finish(ax2, "barrera ΔG‡ (kcal/mol)", "k (s⁻¹, escala log)")
-    _panel_title(ax2, f"±{decade:.2f} kcal/mol = ×10 en k")
-    _titulo(fig, f"Con ΔG‡ = {delta_g:g} kcal/mol, cada molécula reacciona en {_tiempo(1 / k)}",
-            "Mueve ΔG‡: fíjate en que la escala vertical es logarítmica (cada línea es un factor 10).")
+    viz._finish(ax2, _t("barrera ΔG‡ (kcal/mol)"), _t("k (s⁻¹, escala log)"))
+    ax2.set_title(_t("±{d:.2f} kcal/mol = ×10 en k").format(d=decade), loc="left", fontsize=12.5, color=INK_SECONDARY,
+                  fontweight="semibold", pad=10)
+    _titulo(fig, _t("Con ΔG‡ = {dg:g} kcal/mol, cada molécula reacciona en {tt}").format(dg=delta_g, tt=_tiempo(1 / k)),
+            _t("Mueve ΔG‡: fíjate en que la escala vertical es logarítmica (cada línea es un factor 10)."))
 
-    resumen = (
-        f"ΔG‡ = {delta_g:g} kcal/mol a {temperature:g} K → k = {k:.3g} s⁻¹; tiempo de recambio 1/k = {_tiempo(1 / k)}, "
-        f"vida media t½ = ln2/k = {_tiempo(np.log(2) / k)}. A esta temperatura cada {decade:.2f} kcal/mol "
-        f"adicionales de barrera dividen k entre 10 (1.36 kcal/mol a 298 K)."
-    )
+    resumen = _t(
+        "ΔG‡ = {dg:g} kcal/mol a {tk:g} K → k = {k:.3g} s⁻¹; tiempo de recambio 1/k = {t1}, "
+        "vida media t½ = ln2/k = {th}. A esta temperatura cada {d:.2f} kcal/mol "
+        "adicionales de barrera dividen k entre 10 (1.36 kcal/mol a 298 K)."
+    ).format(dg=delta_g, tk=temperature, k=k, t1=_tiempo(1 / k), th=_tiempo(np.log(2) / k), d=decade)
     return fig, resumen
 
 
@@ -514,7 +518,7 @@ def _dibujar_temperatura(delta_h, delta_s):
     k_dense = kin.eyring_rate(delta_h - t_dense * delta_s / 1000.0, t_dense)
     ax2.fill_between(t_dense - 273.15, 0, k_dense, color=viz._tint(COLORS["datos"], 0.9), zorder=1, linewidth=0)
     ax2.plot(t_dense - 273.15, k_dense, color=COLORS["datos"], linewidth=2.8, zorder=3)
-    viz._kband(ax2, 36.0, 38.0, "cuerpo\nhumano", color=viz._tint(COLORS["ts"], 0.85), y_text=0.97)
+    viz._kband(ax2, 36.0, 38.0, _t("cuerpo\nhumano"), color=viz._tint(COLORS["ts"], 0.85), y_text=0.97)
     k_ref = float(kin.eyring_rate(delta_g, _T_REF))
     k_body = float(kin.eyring_rate(delta_h - 310.15 * delta_s / 1000.0, 310.15))
     viz._keypoint(ax2, 25.0, k_ref, COLORS["datos"], size=8)
@@ -527,15 +531,16 @@ def _dibujar_temperatura(delta_h, delta_s):
     ax2.set_ylim(0, float(k_dense.max()) * 1.12)
     viz._finish(ax2, "T (°C)", "k (s⁻¹)")
     _panel_title(ax2, "k(T): calentar acelera, y más cuanto mayor es ΔH‡")
-    _titulo(fig, f"De 25 a 37 °C la reacción va ×{k_body / k_ref:.2f} más rápido",
-            f"ΔH‡ = {delta_h:g} kcal/mol decide cuánto acelera el calor; ΔS‡ = {_num(delta_s, 0)} cal/(mol·K) mueve todo arriba o abajo.")
+    _titulo(fig, _t("De 25 a 37 °C la reacción va ×{f:.2f} más rápido").format(f=k_body / k_ref),
+            _t("ΔH‡ = {dh:g} kcal/mol decide cuánto acelera el calor; ΔS‡ = {ds} cal/(mol·K) mueve todo arriba o abajo.")
+            .format(dh=delta_h, ds=_num(delta_s, 0)))
 
     q10 = float(kin.eyring_rate(delta_h - 308.15 * delta_s / 1000.0, 308.15)) / k_ref
-    resumen = (
-        f"ΔH‡ = {delta_h:g} kcal/mol y ΔS‡ = {_num(delta_s, 0)} cal/(mol·K) → ΔG‡(298 K) = ΔH‡ − TΔS‡ = {delta_g:.2f} kcal/mol, "
-        f"k(25 °C) = {k_ref:.3g} s⁻¹ y k(37 °C) = {k_body:.3g} s⁻¹ (×{k_body / k_ref:.2f}); "
-        f"Q10 (25→35 °C) = {q10:.2f}."
-    )
+    resumen = _t(
+        "ΔH‡ = {dh:g} kcal/mol y ΔS‡ = {ds} cal/(mol·K) → ΔG‡(298 K) = ΔH‡ − TΔS‡ = {dg:.2f} kcal/mol, "
+        "k(25 °C) = {k25:.3g} s⁻¹ y k(37 °C) = {k37:.3g} s⁻¹ (×{f:.2f}); "
+        "Q10 (25→35 °C) = {q10:.2f}."
+    ).format(dh=delta_h, ds=_num(delta_s, 0), dg=delta_g, k25=k_ref, k37=k_body, f=k_body / k_ref, q10=q10)
     return fig, resumen
 
 
@@ -565,9 +570,9 @@ def _dibujar_ph(pka1, pka2):
     v_opt = float(kin.bell_shaped_ph_profile(ph_opt, 1.0, pka1, pka2))
     fig = viz.plot_ph_profile(
         ph, v, pkas=(pka1, pka2), ylabel="v₀ / Vmax",
-        title=f"El óptimo está a mitad de camino entre los dos pKa: pH {ph_opt:.2f}",
-        subtitle="v = Vmax / (1 + 10^(pKa₁ − pH) + 10^(pH − pKa₂)) · zonas grises: un grupo catalítico está «apagado»",
-        pka_labels=("la base (Asp205)\nya tiene protón", "la lisina (Lys169)\nperdió su carga +"),
+        title=_t("El óptimo está a mitad de camino entre los dos pKa: pH {p:.2f}").format(p=ph_opt),
+        subtitle=_t("v = Vmax / (1 + 10^(pKa₁ − pH) + 10^(pH − pKa₂)) · zonas grises: un grupo catalítico está «apagado»"),
+        pka_labels=(_t("la base (Asp205)\nya tiene protón"), _t("la lisina (Lys169)\nperdió su carga +")),
     )
     fig.set_size_inches(10.5, 5.8)
     ax = fig.axes[0]
@@ -577,21 +582,21 @@ def _dibujar_ph(pka1, pka2):
                 text.set_ha("right")
                 text.xyann = (-5, -3)
     ax.axvspan(*_GK_PH_OPT, color=viz._tint(COLORS["producto"], 0.55), alpha=0.45, zorder=2, linewidth=0)
-    ax.text(0.5 * sum(_GK_PH_OPT), 0.03, "glucoquinasa medida: pH 8.5–8.7", rotation=90, ha="center", va="bottom",
+    ax.text(0.5 * sum(_GK_PH_OPT), 0.03, _t("glucoquinasa medida: pH 8.5–8.7"), rotation=90, ha="center", va="bottom",
             color=INK_SECONDARY, fontsize=9.5, zorder=2)
     viz._keypoint(ax, ph_opt, v_opt, COLORS["ts"], size=11)
-    ax.annotate(f"óptimo: pH {ph_opt:.2f} ({100 * v_opt:.0f} % de Vmax)", xy=(ph_opt, v_opt), xytext=(0, 12),
+    ax.annotate(_t("óptimo: pH {p:.2f} ({pct:.0f} % de Vmax)").format(p=ph_opt, pct=100 * v_opt), xy=(ph_opt, v_opt), xytext=(0, 12),
                 textcoords="offset points", ha="center", va="bottom", color=INK, fontsize=11.5, fontweight="semibold")
     ax.set_xlim(2.0, 12.0)
     ax.set_ylim(0, 1.22)
-    resumen = (
-        f"Con pKa₁ = {pka1:g} y pKa₂ = {pka2:g} el óptimo está en pH = (pKa₁ + pKa₂)/2 = {ph_opt:.2f}, "
-        f"donde la enzima alcanza el {100 * v_opt:.0f} % de Vmax"
-    )
+    resumen = _t(
+        "Con pKa₁ = {p1:g} y pKa₂ = {p2:g} el óptimo está en pH = (pKa₁ + pKa₂)/2 = {po:.2f}, "
+        "donde la enzima alcanza el {pct:.0f} % de Vmax"
+    ).format(p1=pka1, p2=pka2, po=ph_opt, pct=100 * v_opt)
     if pka2 - pka1 < 2.0:
-        resumen += " (los pKa están tan próximos que nunca se llega al máximo teórico)."
+        resumen += _t(" (los pKa están tan próximos que nunca se llega al máximo teórico).")
     else:
-        resumen += f"; la actividad cae a la mitad en pH ≈ {pka1:g} y ≈ {pka2:g}."
+        resumen += _t("; la actividad cae a la mitad en pH ≈ {p1:g} y ≈ {p2:g}.").format(p1=pka1, p2=pka2)
     return fig, resumen
 
 
@@ -619,12 +624,12 @@ def _dibujar_activador(vmax_factor, s_half_factor, s_max=30.0):
     s_half_act = _GK_S_HALF * s_half_factor
 
     fig, ax = figure(10.5, 5.8)
-    viz._kband(ax, 4.0, 7.0, "glucosa en sangre\nen ayunas (4–7 mM)", color=viz._tint(COLORS["ts"], 0.88), y_text=0.97)
+    viz._kband(ax, 4.0, 7.0, _t("glucosa en sangre\nen ayunas (4–7 mM)"), color=viz._tint(COLORS["ts"], 0.88), y_text=0.97)
     ax.fill_between(s, basal, activated, color=viz._tint(COLORS["hill"], 0.85), zorder=1, linewidth=0)
     ax.plot(s, basal, color=COLORS["michaelis_menten"], linewidth=2.8, zorder=3,
-            label=f"sin activador (S₀.₅ = {_GK_S_HALF} mM, n = {_GK_N})")
+            label=_t("sin activador (S₀.₅ = {sh} mM, n = {n})").format(sh=_GK_S_HALF, n=_GK_N))
     ax.plot(s, activated, color=COLORS["hill"], linewidth=2.8, zorder=3,
-            label=f"con activador (Vmax ×{vmax_factor:g}, S₀.₅ = {s_half_act:.2g} mM)")
+            label=_t("con activador (Vmax ×{vf:g}, S₀.₅ = {sh:.2g} mM)").format(vf=vmax_factor, sh=s_half_act))
     viz._keypoint(ax, _GLUCOSE_BLOOD_MM, a_blood, COLORS["michaelis_menten"], size=9)
     viz._keypoint(ax, _GLUCOSE_BLOOD_MM, b_blood, COLORS["hill"], size=9)
     ax.annotate("", xy=(_GLUCOSE_BLOOD_MM, b_blood), xytext=(_GLUCOSE_BLOOD_MM, a_blood),
@@ -635,16 +640,16 @@ def _dibujar_activador(vmax_factor, s_half_factor, s_max=30.0):
                 textcoords="offset points", ha="left", va="bottom", color=INK, fontsize=11.5, fontweight="semibold")
     ax.set_xlim(0, s_max)
     ax.set_ylim(0, max(100.0 * vmax_factor, 100.0) * 1.15)
-    viz._finish(ax, "[glucosa] (mM)", "actividad (% de la Vmax basal)",
-                f"A 5 mM de glucosa, el activador multiplica la actividad por {b_blood / a_blood:.1f}",
-                "El activador baja S₀.₅ y sube Vmax: la curva se desplaza hacia arriba y a la izquierda.")
+    viz._finish(ax, _t("[glucosa] (mM)"), _t("actividad (% de la Vmax basal)"),
+                _t("A 5 mM de glucosa, el activador multiplica la actividad por {f:.1f}").format(f=b_blood / a_blood),
+                _t("El activador baja S₀.₅ y sube Vmax: la curva se desplaza hacia arriba y a la izquierda."))
     viz._legend(ax, loc="lower right")
 
-    resumen = (
-        f"A 5 mM de glucosa: sin activador la glucoquinasa trabaja al {a_blood:.0f} % de su Vmax basal; "
-        f"con activador (Vmax ×{vmax_factor:g}, S₀.₅ ×{s_half_factor:g} → {s_half_act:.2g} mM) trabaja al "
-        f"{b_blood:.0f} % (×{b_blood / a_blood:.1f})."
-    )
+    resumen = _t(
+        "A 5 mM de glucosa: sin activador la glucoquinasa trabaja al {a:.0f} % de su Vmax basal; "
+        "con activador (Vmax ×{vf:g}, S₀.₅ ×{sf:g} → {sh:.2g} mM) trabaja al "
+        "{b:.0f} % (×{f:.1f})."
+    ).format(a=a_blood, vf=vmax_factor, sf=s_half_factor, sh=s_half_act, b=b_blood, f=b_blood / a_blood)
     return fig, resumen
 
 
@@ -678,8 +683,8 @@ def _dibujar_perfil_energia(barrier, reaction_energy):
     fig, ax = figure(10.5, 5.8)
     ax.fill_between(x, lo, e, color=viz._tint(INK_MUTED, 0.9), zorder=1, linewidth=0)
     ax.plot(x, e, color=INK_SECONDARY, linewidth=2.8, zorder=3)
-    for xi, ei, color, text in ((0.0, 0.0, COLORS["reactivo"], "reactivos"), (0.5, barrier_eff, COLORS["ts"], "estado de transición"),
-                                (1.0, reaction_energy, COLORS["producto"], "productos")):
+    for xi, ei, color, text in ((0.0, 0.0, COLORS["reactivo"], _t("reactivos")), (0.5, barrier_eff, COLORS["ts"], _t("estado de transición")),
+                                (1.0, reaction_energy, COLORS["producto"], _t("productos"))):
         viz._keypoint(ax, xi, ei, color, size=11)
         ax.annotate(text, xy=(xi, ei), xytext=(0, 12), textcoords="offset points", ha="center", va="bottom",
                     color=INK, fontsize=11, fontweight="semibold")
@@ -697,19 +702,19 @@ def _dibujar_perfil_energia(barrier, reaction_energy):
     k = float(kin.eyring_rate(barrier_eff, _T_REF))
     k_rev = float(kin.eyring_rate(barrier_eff - reaction_energy, _T_REF))
     keq = float(np.exp(-reaction_energy / (kin.R_KCAL * _T_REF)))
-    kind = "exergónica (ΔE < 0)" if reaction_energy < 0 else ("endergónica (ΔE > 0)" if reaction_energy > 0 else "termoneutra")
-    cuesta = "cuesta abajo" if reaction_energy < 0 else ("cuesta arriba" if reaction_energy > 0 else "a nivel")
-    viz._finish(ax, "Coordenada de reacción", "Energía relativa (kcal/mol)",
-                f"La colina decide la velocidad (k ≈ {k:.3g} s⁻¹); el desnivel, hacia dónde va ({cuesta})",
-                "Altura de la cima → rapidez. Diferencia entre valles → equilibrio.", grid_axis="y")
+    kind = _t("exergónica (ΔE < 0)") if reaction_energy < 0 else (_t("endergónica (ΔE > 0)") if reaction_energy > 0 else _t("termoneutra"))
+    cuesta = _t("cuesta abajo") if reaction_energy < 0 else (_t("cuesta arriba") if reaction_energy > 0 else _t("a nivel"))
+    viz._finish(ax, _t("Coordenada de reacción"), _t("Energía relativa (kcal/mol)"),
+                _t("La colina decide la velocidad (k ≈ {k:.3g} s⁻¹); el desnivel, hacia dónde va ({c})").format(k=k, c=cuesta),
+                _t("Altura de la cima → rapidez. Diferencia entre valles → equilibrio."), grid_axis="y")
 
-    resumen = (
-        f"ΔE‡ = {barrier_eff:g} kcal/mol → k(298 K, Eyring, tratando ΔE‡ como ΔG‡) = {k:.3g} s⁻¹ "
-        f"(1/k = {_tiempo(1 / k)}); reacción {kind}: barrera inversa {barrier_eff - reaction_energy:g} kcal/mol, "
-        f"k inversa = {k_rev:.3g} s⁻¹, K_eq = exp(−ΔE/RT) = {keq:.3g}."
-    )
+    resumen = _t(
+        "ΔE‡ = {b:g} kcal/mol → k(298 K, Eyring, tratando ΔE‡ como ΔG‡) = {k:.3g} s⁻¹ "
+        "(1/k = {t1}); reacción {kind}: barrera inversa {br:g} kcal/mol, "
+        "k inversa = {kr:.3g} s⁻¹, K_eq = exp(−ΔE/RT) = {keq:.3g}."
+    ).format(b=barrier_eff, k=k, t1=_tiempo(1 / k), kind=kind, br=barrier_eff - reaction_energy, kr=k_rev, keq=keq)
     if barrier_eff != barrier:
-        resumen += f" (La barrera se elevó a {barrier_eff:g} kcal/mol para que el TS quede por encima de los productos.)"
+        resumen += _t(" (La barrera se elevó a {b:g} kcal/mol para que el TS quede por encima de los productos.)").format(b=barrier_eff)
     return fig, resumen
 
 
@@ -746,5 +751,5 @@ def todo():
     """Pestañas (``ipywidgets.Tab``) con los nueve exploradores, construidos al llamar."""
     tab = widgets.Tab(children=[build() for _, build in _EXPLORADORES])
     for index, (name, _) in enumerate(_EXPLORADORES):
-        tab.set_title(index, name)
+        tab.set_title(index, _t(name))
     return tab

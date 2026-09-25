@@ -40,6 +40,7 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 
 from . import kinetics as _kin
+from .textos import t as _t
 
 __all__ = [
     # sistema de diseño
@@ -356,9 +357,9 @@ def _soft_fill(ax, x, y, base, color, alpha=0.10):
 
 
 def plot_energy_profile(
-    x, energy, xlabel="Coordenada de reacción", ax=None, ts_index=None, labels=None, title=None,
+    x, energy, xlabel=None, ax=None, ts_index=None, labels=None, title=None,
     subtitle=None, annotate_barrier=True, relative=True, smooth=True, color=None, label=None,
-    ylabel="Energía relativa (kcal/mol)", annotate_states=False, state_names=("reactivo", "estado de transición", "producto"),
+    ylabel=None, annotate_states=False, state_names=None,
     annotate_reaction=False, sort=True,
 ):
     """Perfil de energía a lo largo de la coordenada de reacción (kcal/mol).
@@ -371,6 +372,10 @@ def plot_energy_profile(
     Con ``sort=False`` los puntos se dibujan en el orden dado (un camino de reacción cuyo ξ no es monótono:
     el primer punto es el reactivo y el último el producto).
     """
+    xlabel = _t("Coordenada de reacción") if xlabel is None else xlabel
+    ylabel = _t("Energía relativa (kcal/mol)") if ylabel is None else ylabel
+    if state_names is None:
+        state_names = (_t("reactivo"), _t("estado de transición"), _t("producto"))
     x = np.asarray(x, dtype=float)
     e = np.asarray(energy, dtype=float)
     order = np.argsort(x, kind="stable") if sort else np.arange(x.size)
@@ -446,14 +451,16 @@ def plot_energy_profile(
 
 
 def plot_energy_profiles(
-    profiles, xlabel="Coordenada de reacción", ax=None, title=None, subtitle=None, relative=True,
-    smooth=True, mark_ts=True, ylabel="Energía relativa (kcal/mol)", colors=None, emphasis=None,
+    profiles, xlabel=None, ax=None, title=None, subtitle=None, relative=True,
+    smooth=True, mark_ts=True, ylabel=None, colors=None, emphasis=None,
 ):
     """Varios perfiles ``(x, energía, etiqueta)`` superpuestos, rotulados al final de cada curva.
 
     ``emphasis`` (índice) dibuja ese perfil más grueso y con relleno; los demás quedan finos. La leyenda
     se mantiene arriba como índice de colores.
     """
+    xlabel = _t("Coordenada de reacción") if xlabel is None else xlabel
+    ylabel = _t("Energía relativa (kcal/mol)") if ylabel is None else ylabel
     fig, ax = _get_ax(ax, 9.6, 5.4)
     colors = list(colors) if colors else PALETTE
     if len(profiles) > len(colors):
@@ -482,7 +489,7 @@ def plot_energy_profiles(
             i = int(np.argmax(e))
             _markers(ax, [x[i]], [e[i]], color, size=10, hollow=not strong, zorder=6)
             if strong:
-                ax.annotate(f"cima: {_num(e[i])} kcal/mol", xy=(x[i], e[i]), xytext=(0, 12), textcoords="offset points",
+                ax.annotate(_t("cima: {v} kcal/mol").format(v=_num(e[i])), xy=(x[i], e[i]), xytext=(0, 12), textcoords="offset points",
                             ha="center", va="bottom", fontsize=11, color=INK, fontweight="semibold")
         ends.append((float(x[-1]), float(e[-1]), label, color))
     lo = min(float(np.min(a)) for a in all_e)
@@ -497,9 +504,9 @@ def plot_energy_profiles(
 
 
 def plot_energy_levels(
-    levels, ax=None, title=None, subtitle=None, connect=True, compare=None, label="con enzima",
-    compare_label="sin enzima", annotate_barrier=True, show_values=True, ts_indices=None,
-    ylabel="Energía (kcal/mol)", width=0.56,
+    levels, ax=None, title=None, subtitle=None, connect=True, compare=None, label=None,
+    compare_label=None, annotate_barrier=True, show_values=True, ts_indices=None,
+    ylabel=None, width=0.56,
 ):
     """Diagrama de niveles de energía por etapas.
 
@@ -510,6 +517,9 @@ def plot_energy_levels(
     perfil de reacción. La barrera se anota desde el mínimo inmediatamente anterior. ``compare`` es una
     segunda lista (p. ej. sin enzima) dibujada en gris discontinuo con las mismas posiciones.
     """
+    label = _t("con enzima") if label is None else label
+    compare_label = _t("sin enzima") if compare_label is None else compare_label
+    ylabel = _t("Energía (kcal/mol)") if ylabel is None else ylabel
     names = [str(name) for name, _ in levels]
     e = np.asarray([float(val) for _, val in levels])
     n = len(names)
@@ -628,7 +638,7 @@ def _band(ax, y0, y1, color, text=None, alpha=0.13, text_x=0.99, text_color=None
 
 
 def plot_md_timeseries(
-    df, columns, labels=None, ylabel="", ax=None, time_column="tiempo_ps", xlabel="Tiempo (ps)",
+    df, columns, labels=None, ylabel="", ax=None, time_column="tiempo_ps", xlabel=None,
     title=None, subtitle=None, colors=None, smooth_window=7,
 ):
     """Series temporales de una dinámica molecular a partir de un ``DataFrame`` con ``tiempo_ps``.
@@ -636,11 +646,12 @@ def plot_md_timeseries(
     Cada serie se dibuja tenue (los fotogramas) con su media móvil encima (la tendencia). ``columns`` es una
     lista de nombres de columna; ``labels`` (opcional) sus etiquetas en español.
     """
+    xlabel = _t("Tiempo (ps)") if xlabel is None else xlabel
     if isinstance(columns, str):
         columns = [columns]
     columns = list(columns)
     if labels is None:
-        labels = [_MD_LABELS.get(c, c) for c in columns]
+        labels = [_t(_MD_LABELS[c]) if c in _MD_LABELS else c for c in columns]
     colors = list(colors) if colors else PALETTE
     if len(columns) > len(colors):
         raise ValueError("máximo 8 series por panel: usa múltiplos pequeños")
@@ -661,7 +672,7 @@ def plot_md_timeseries(
 
 def plot_md_summary(
     df, crystal_value=None, title=None, subtitle=None,
-    time_column="tiempo_ps", crystal_label="cristal", bins=30, nac_threshold=3.5,
+    time_column="tiempo_ps", crystal_label=None, bins=30, nac_threshold=3.5,
     crystal_hbond=None, hbond_max=3.2, smooth_window=7,
 ):
     """Resumen de la MD en una sola historia: ¿está la enzima lista para reaccionar?
@@ -674,6 +685,7 @@ def plot_md_summary(
     _ensure_style()
     from matplotlib.gridspec import GridSpec
 
+    crystal_label = _t("cristal") if crystal_label is None else crystal_label
     fig = plt.figure(figsize=(10.4, 7.6), facecolor=SURFACE)
     gs = GridSpec(2, 2, figure=fig, height_ratios=[1.45, 1.0], width_ratios=[4.2, 1.0], hspace=0.55, wspace=0.10)
     ax_d = fig.add_subplot(gs[0, 0])
@@ -696,7 +708,7 @@ def plot_md_summary(
         ax_d.plot(t, d, linestyle="none", marker="o", markersize=3.2, color=COLORS["reactivo"], alpha=0.45, zorder=2)
         ax_d.plot(t, rolling_mean(d, smooth_window), color=COLORS["reactivo"], linewidth=2.8, zorder=3)
         y_lab = 0.5 * (nac_threshold + (crystal_value if crystal_value is not None else lo))
-        ax_d.annotate(f"zona de ataque cercano  (d < {nac_threshold:g} Å)", xy=(0.012, y_lab),
+        ax_d.annotate(_t("zona de ataque cercano  (d < {u:g} Å)").format(u=nac_threshold), xy=(0.012, y_lab),
                       xycoords=("axes fraction", "data"), ha="left", va="center", fontsize=11.5,
                       color=oscurecer(green), fontweight="semibold", zorder=8)
         if crystal_value is not None:
@@ -706,8 +718,8 @@ def plot_md_summary(
                           ha="left", va="bottom", fontsize=10.5, color=INK, zorder=8)
         ax_d.set_ylim(lo, hi)
         ax_d.set_xlim(t.min(), t.max())
-        _finish(ax_d, "Tiempo (ps)", "d(Pγ–O6)  (Å)")
-        ax_d.set_title("Distancia entre el fósforo γ del ATP y el O6 de la glucosa", loc="left", fontsize=12,
+        _finish(ax_d, _t("Tiempo (ps)"), "d(Pγ–O6)  (Å)")
+        ax_d.set_title(_t("Distancia entre el fósforo γ del ATP y el O6 de la glucosa"), loc="left", fontsize=12,
                        color=INK_SECONDARY, fontweight="normal", pad=8)
 
         # distribución marginal, horizontal, en dos colores (dentro / fuera de la zona)
@@ -719,21 +731,21 @@ def plot_md_summary(
         ax_h.axhline(nac_threshold, color=green, linewidth=1.2, linestyle=(0, (4, 3)))
         ax_h.annotate(f"{frac:.0%}", xy=(0.5, 0.5 * (lo + nac_threshold)), xycoords=("axes fraction", "data"),
                       ha="center", va="center", fontsize=20, fontweight="bold", color=oscurecer(green))
-        ax_h.annotate("del tiempo", xy=(0.5, 0.5 * (lo + nac_threshold)), xycoords=("axes fraction", "data"),
+        ax_h.annotate(_t("del tiempo"), xy=(0.5, 0.5 * (lo + nac_threshold)), xycoords=("axes fraction", "data"),
                       xytext=(0, -18), textcoords="offset points", ha="center", va="center", fontsize=10,
                       color=INK_SECONDARY)
         ax_h.set_xlim(0, max(counts.max(), 1) * 1.15)
         _style_axes(ax_h, grid_axis=None)
         ax_h.spines["left"].set_visible(False)
         ax_h.tick_params(axis="y", left=False, labelleft=False)
-        ax_h.set_xlabel("fotogramas")
+        ax_h.set_xlabel(_t("fotogramas"))
     else:
-        ax_d.text(0.5, 0.5, "sin columna «d_PG_O6_A»", transform=ax_d.transAxes, ha="center", va="center", color=INK_MUTED)
+        ax_d.text(0.5, 0.5, _t("sin columna «{c}»").format(c="d_PG_O6_A"), transform=ax_d.transAxes, ha="center", va="center", color=INK_MUTED)
         _style_axes(ax_h, grid_axis=None)
 
     small = [
-        (ax_r, "rmsd_CA_A", "La proteína es estable", "RMSD de los Cα (Å)", COLORS["enzima"], None),
-        (ax_a, "d_O6_OD1asp205_A", "O6 ··· Asp205 (la base catalítica)", "d(O6–OD1)  (Å)", PALETTE[6], hbond_max),
+        (ax_r, "rmsd_CA_A", _t("La proteína es estable"), _t("RMSD de los Cα (Å)"), COLORS["enzima"], None),
+        (ax_a, "d_O6_OD1asp205_A", _t("O6 ··· Asp205 (la base catalítica)"), "d(O6–OD1)  (Å)", PALETTE[6], hbond_max),
     ]
     for ax, col, panel_title, ylab, color, band in small:
         if col in df.columns:
@@ -742,7 +754,7 @@ def plot_md_summary(
                 lo_b = min(float(np.min(y)), crystal_hbond or band) - 0.3
                 ax.axhspan(lo_b - 5, band, color=green, alpha=0.10, linewidth=0, zorder=0)
                 ax.axhline(band, color=green, linewidth=1.0, linestyle=(0, (4, 3)))
-                ax.annotate("puente de H", xy=(0.02, band), xycoords=("axes fraction", "data"), xytext=(0, -6),
+                ax.annotate(_t("puente de H"), xy=(0.02, band), xycoords=("axes fraction", "data"), xytext=(0, -6),
                             textcoords="offset points", ha="left", va="top", fontsize=10, color=oscurecer(green),
                             fontweight="semibold")
                 if crystal_hbond is not None:
@@ -754,40 +766,41 @@ def plot_md_summary(
             ax.plot(t, y, color=color, linewidth=1.0, alpha=0.35)
             ax.plot(t, rolling_mean(y, smooth_window), color=color, linewidth=2.4)
             m = float(np.mean(y))
-            ax.annotate(f"media {m:.2f} Å", xy=(0.98, 0.95), xycoords="axes fraction", ha="right", va="top",
+            ax.annotate(_t("media {m:.2f} Å").format(m=m), xy=(0.98, 0.95), xycoords="axes fraction", ha="right", va="top",
                         fontsize=10.5, color=INK, fontweight="semibold")
             if band is None:
                 ax.set_ylim(0, max(float(np.max(y)) * 1.35, 1.0))
             ax.set_xlim(t.min(), t.max())
         else:
-            ax.text(0.5, 0.5, f"sin columna «{col}»", transform=ax.transAxes, ha="center", va="center", color=INK_MUTED)
-        _finish(ax, "Tiempo (ps)", ylab)
+            ax.text(0.5, 0.5, _t("sin columna «{c}»").format(c=col), transform=ax.transAxes, ha="center", va="center", color=INK_MUTED)
+        _finish(ax, _t("Tiempo (ps)"), ylab)
         ax.set_title(panel_title, loc="left", fontsize=12, color=INK_SECONDARY, fontweight="normal", pad=8)
 
     if title is None:
-        title = (f"La enzima pasa el {frac:.0%} del tiempo lista para reaccionar" if frac is not None
-                 else "Resumen de la dinámica molecular")
+        title = (_t("La enzima pasa el {f:.0%} del tiempo lista para reaccionar").format(f=frac) if frac is not None
+                 else _t("Resumen de la dinámica molecular"))
     if subtitle is None:
-        subtitle = "Cada punto es un fotograma de la película (cada 10 ps); la línea gruesa es la media móvil"
+        subtitle = _t("Cada punto es un fotograma de la película (cada 10 ps); la línea gruesa es la media móvil")
     fig.subplots_adjust(left=0.08, right=0.97, bottom=0.08, top=0.855)
     fig.suptitle(title, x=0.08, y=0.975, ha="left", va="top", color=INK, fontsize=16, fontweight="semibold")
     fig.text(0.08, 0.935, subtitle, ha="left", va="top", color=INK_SECONDARY, fontsize=11.5)
     return fig
 
 
-def plot_frequencies(sets, title=None, subtitle=None, noise=40.0, xlabel="Frecuencia (cm⁻¹)"):
+def plot_frequencies(sets, title=None, subtitle=None, noise=40.0, xlabel=None):
     """Las frecuencias vibracionales más bajas como barras: las imaginarias (negativas) a la izquierda.
 
     ``sets`` = lista de ``(etiqueta, frecuencias)``; una fila por conjunto. Las imaginarias grandes
     (|ν| > ``noise``) van en naranja (el movimiento de la reacción); las pequeñas, en gris claro con la
     banda de «ruido numérico» sombreada.
     """
+    xlabel = _t("Frecuencia (cm⁻¹)") if xlabel is None else xlabel
     if isinstance(sets, np.ndarray) or (sets and not isinstance(sets[0], (tuple, list))):
         sets = [("", sets)]
     n = len(sets)
     fig, ax = _get_ax(None, 9.6, 1.5 * n + 2.0)
     ax.axvspan(-noise, noise, color=INK_MUTED, alpha=0.10, linewidth=0, zorder=0)
-    ax.annotate("ruido\nnumérico", xy=(0, 0.03), xycoords=("data", "axes fraction"), ha="center", va="bottom",
+    ax.annotate(_t("ruido\nnumérico"), xy=(0, 0.03), xycoords=("data", "axes fraction"), ha="center", va="bottom",
                 fontsize=10, color=INK_MUTED, linespacing=1.1)
     ax.axvline(0, color=AXIS, linewidth=1.0, zorder=1)
     all_f = []
@@ -812,9 +825,9 @@ def plot_frequencies(sets, title=None, subtitle=None, noise=40.0, xlabel="Frecue
     lo, hi = min(all_f + [-60]), max(all_f + [60])
     ax.set_xlim(lo - 0.12 * (hi - lo), hi + 0.08 * (hi - lo))
     ax.set_ylim(-0.7, n - 0.1)
-    ax.annotate("← imaginarias: la geometría «cae»", xy=(0.0, -0.13), xycoords="axes fraction", ha="left",
+    ax.annotate(_t("← imaginarias: la geometría «cae»"), xy=(0.0, -0.13), xycoords="axes fraction", ha="left",
                 va="top", fontsize=10.5, color=INK_SECONDARY)
-    ax.annotate("reales: la geometría vibra →", xy=(1.0, -0.13), xycoords="axes fraction", ha="right",
+    ax.annotate(_t("reales: la geometría vibra →"), xy=(1.0, -0.13), xycoords="axes fraction", ha="right",
                 va="top", fontsize=10.5, color=INK_SECONDARY)
     _finish(ax, None, None, title, subtitle, grid_axis="x")
     ax.spines["left"].set_visible(False)
@@ -829,14 +842,15 @@ def oscurecer(color, t=0.35):
     return matplotlib.colors.to_hex((r * (1 - t), g * (1 - t), b * (1 - t)))
 
 
-def plot_progress_curves(curves, t_tangent=None, title=None, subtitle=None, xlabel="Tiempo (s)",
-                         ylabel="Producto formado (µM)"):
+def plot_progress_curves(curves, t_tangent=None, title=None, subtitle=None, xlabel=None, ylabel=None):
     """Curvas de progreso ``[P](t)`` con su tangente inicial (v₀) rotulada directamente.
 
     ``curves`` = lista de ``(t, P, v0, etiqueta)``, de menor a mayor [S]₀ (rampa azul). Cada tangente llega
     hasta el 70 % del producto final (como mucho ``t_tangent``, por defecto el 45 % del eje de tiempo), así
     se ve dónde la curva real se separa de ella.
     """
+    xlabel = _t("Tiempo (s)") if xlabel is None else xlabel
+    ylabel = _t("Producto formado (µM)") if ylabel is None else ylabel
     fig, ax = _get_ax(None, 9.6, 5.4)
     colors = sequential_blue(len(curves), lo=0.45)
     y_top = 0.0
@@ -856,7 +870,7 @@ def plot_progress_curves(curves, t_tangent=None, title=None, subtitle=None, xlab
     ax.set_xlim(0, float(np.max(curves[0][0])))
     ax.set_ylim(0, y_top * 1.12)
     _finish(ax, xlabel, ylabel, title, subtitle)
-    leg = _legend(ax, handles=handles[::-1], loc="upper left", title="Pendiente inicial (línea discontinua)",
+    leg = _legend(ax, handles=handles[::-1], loc="upper left", title=_t("Pendiente inicial (línea discontinua)"),
                   handlelength=2.4, borderaxespad=0.8)
     leg.get_title().set_fontweight("semibold")
     leg.get_title().set_color(INK)
@@ -865,11 +879,12 @@ def plot_progress_curves(curves, t_tangent=None, title=None, subtitle=None, xlab
 
 
 def plot_snapshot_scans(reference, scans, xlabel="ξ = d(Pγ–O3β) − d(Pγ–O6)  (Å)", title=None, subtitle=None,
-                        reference_label="cristal minimizado", ts_index=None):
+                        reference_label=None, ts_index=None):
     """El camino con estado de transición (``reference`` = (ξ, E)) frente a escaneos que suben sin parar.
 
     ``scans`` = lista de ``(ξ, E, etiqueta)``; se dibujan en rojo claro con su valor final rotulado.
     """
+    reference_label = _t("cristal minimizado") if reference_label is None else reference_label
     fig, ax = _get_ax(None, 9.6, 5.6)
     xr, er = (np.asarray(a, dtype=float) for a in reference)
     order = np.argsort(xr)
@@ -892,7 +907,7 @@ def plot_snapshot_scans(reference, scans, xlabel="ξ = d(Pγ–O3β) − d(Pγ�
     for x_end, e_end, lab, color in ends:
         y = e_end if not placed else max(e_end, placed[-1] + min_gap)
         placed.append(y)
-        ax.annotate(f"{lab}: {e_end:.0f}", xy=(x_end, e_end), xytext=(x_end + 0.08, y), textcoords="data",
+        ax.annotate(f"{_t(lab)}: {e_end:.0f}", xy=(x_end, e_end), xytext=(x_end + 0.08, y), textcoords="data",
                     ha="left", va="center", fontsize=10.5, color=INK_SECONDARY,
                     arrowprops=dict(arrowstyle="-", color=color, linewidth=0.8, shrinkA=0, shrinkB=2))
     xs, ys = _smooth_curve(xr, er)
@@ -901,30 +916,32 @@ def plot_snapshot_scans(reference, scans, xlabel="ξ = d(Pγ–O3β) − d(Pγ�
     i_ts = int(np.argmax(er)) if ts_index is None else int(ts_index)
     _markers(ax, [xr[i_ts]], [er[i_ts]], COLORS["ts"], size=11, zorder=7)
     ax.plot([xr[i_ts]], [er[i_ts]], "o", markersize=24, color=COLORS["ts"], alpha=0.16, markeredgewidth=0, zorder=6)
-    ax.annotate(f"cima: {er[i_ts]:.1f} kcal/mol", xy=(xr[i_ts], er[i_ts]), xytext=(0, -22), textcoords="offset points",
+    ax.annotate(_t("cima: {v} kcal/mol").format(v=f"{er[i_ts]:.1f}"), xy=(xr[i_ts], er[i_ts]), xytext=(0, -22), textcoords="offset points",
                 ha="center", va="top", fontsize=11.5, fontweight="semibold", color=INK,
                 bbox=dict(boxstyle="round,pad=0.3,rounding_size=0.7", facecolor="#ffffff", edgecolor=GRID))
     _halo_point(ax, xr[-1], er[-1], COLORS["producto"], size=10)
-    ax.annotate(f"{reference_label}:\nhay producto estable", xy=(xr[-1], er[-1]), xytext=(0, -16),
+    ax.annotate(f"{reference_label}:\n" + _t("hay producto estable"), xy=(xr[-1], er[-1]), xytext=(0, -16),
                 textcoords="offset points", ha="center", va="top", fontsize=10.5, color=INK, fontweight="semibold")
     ax.set_xlim(min(float(np.min(xr)), min(float(np.min(s[0])) for s in scans)) - 0.1,
                 max(float(np.max(xr)), max(float(np.max(s[0])) for s in scans)) + 0.85)
     ax.set_ylim(min(0.0, float(np.min(er))) - 1.5, top * 1.12)
-    _finish(ax, xlabel, "Energía relativa al reactivo (kcal/mol)", title, subtitle)
-    handles = [Line2D([], [], color=COLORS["reactivo"], linewidth=3, label=f"{reference_label} (camino completo)"),
+    _finish(ax, xlabel, _t("Energía relativa al reactivo (kcal/mol)"), title, subtitle)
+    handles = [Line2D([], [], color=COLORS["reactivo"], linewidth=3, label=f"{reference_label} " + _t("(camino completo)")),
                Line2D([], [], color=_RED, linewidth=2, marker="o", markersize=4, markerfacecolor="#ffffff",
-                      label="instantáneas de la MD (sin producto)")]
+                      label=_t("instantáneas de la MD (sin producto)"))]
     _legend(ax, handles=handles, loc="upper left")
     return fig
 
 
-def plot_estimates(rows, reference=None, reference_label="experimento", xlabel="Barrera (kcal/mol)",
+def plot_estimates(rows, reference=None, reference_label=None, xlabel=None,
                    title=None, subtitle=None, rate_fn=None):
     """Comparación de estimaciones de una barrera: una fila por estimación (punto + valor), el experimento
     como banda vertical, y (si se da ``rate_fn``) la velocidad k que implica cada valor, en texto a la derecha.
 
     ``rows`` = lista de ``(etiqueta, valor, color)``.
     """
+    reference_label = _t("experimento") if reference_label is None else reference_label
+    xlabel = _t("Barrera (kcal/mol)") if xlabel is None else xlabel
     n = len(rows)
     fig, ax = _get_ax(None, 9.6, 0.62 * n + 2.2)
     vals = [float(r[1]) for r in rows]
@@ -1034,9 +1051,9 @@ def plot_michaelis_menten(
         ax.set_xlim(0, s_dense[-1])
         if show_km:
             if km < 0.45 * s_dense[-1]:
-                _kband(ax, 0, km, "casi lineal:\ncada molécula cuenta", color=_tint(color, 0.93), anchor="left")
+                _kband(ax, 0, km, _t("casi lineal:\ncada molécula cuenta"), color=_tint(color, 0.93), anchor="left")
             if 4 * km < 0.8 * s_dense[-1]:
-                _kband(ax, 4 * km, s_dense[-1], "saturación: añadir más\nsustrato casi no ayuda")
+                _kband(ax, 4 * km, s_dense[-1], _t("saturación: añadir más\nsustrato casi no ayuda"))
             _guide(ax, "h", vmax, color=INK_SECONDARY)
             ax.annotate("Vmax", xy=(1.0, vmax), xycoords=("axes fraction", "data"), xytext=(-4, 4),
                         textcoords="offset points", ha="right", va="bottom", color=INK, fontsize=11.5, fontweight="semibold")
@@ -1094,7 +1111,7 @@ def plot_hill_vs_mm(
         if below.any():
             k = int(np.argmax(np.where(below, v_mm - v_hill, -np.inf)))
             if v_mm[k] - v_hill[k] > 0.06 * top:
-                ax.annotate("por debajo de S₀.₅\nla sigmoide casi no responde", xy=(s[k], 0.5 * (v_mm[k] + v_hill[k])),
+                ax.annotate(_t("por debajo de S₀.₅\nla sigmoide casi no responde"), xy=(s[k], 0.5 * (v_mm[k] + v_hill[k])),
                             xytext=(0.36, 0.2), textcoords="axes fraction", ha="left", va="center", color=INK_SECONDARY,
                             fontsize=10.5, arrowprops=dict(arrowstyle="-", color=INK_MUTED, linewidth=0.9, shrinkB=4))
     ax.set_xlim(0, s.max())
@@ -1111,7 +1128,7 @@ _LINEARIZATIONS = (
 )
 
 
-def plot_linearizations(s, v, fits=None, title="Linealizaciones de Michaelis–Menten", subtitle=None, color=None):
+def plot_linearizations(s, v, fits=None, title=None, subtitle=None, color=None):
     """Tres paneles: Lineweaver–Burk, Eadie–Hofstee y Hanes–Woolf.
 
     ``fits`` es un diccionario opcional ``{nombre: linear_fit_dict}`` con claves
@@ -1120,6 +1137,7 @@ def plot_linearizations(s, v, fits=None, title="Linealizaciones de Michaelis–M
     (trazo discontinuo) hasta los cortes con los ejes, que se marcan y rotulan. En
     Lineweaver–Burk se señalan los puntos de [S] baja, que dominan (y distorsionan) el ajuste.
     """
+    title = _t("Linealizaciones de Michaelis–Menten") if title is None else title
     s = np.asarray(s, dtype=float)
     v = np.asarray(v, dtype=float)
     fits = dict(fits or {})
@@ -1147,7 +1165,7 @@ def plot_linearizations(s, v, fits=None, title="Linealizaciones de Michaelis–M
                 ax.plot([x[k]], [y[k]], "o", markersize=19, markerfacecolor="none", markeredgecolor=COLORS["ts"],
                         markeredgewidth=1.6, zorder=6)
             k = int(worst[-1])
-            ax.annotate("[S] baja: pocos puntos\nque pesan demasiado", xy=(x[k], y[k]), xytext=(-12, 10),
+            ax.annotate(_t("[S] baja: pocos puntos\nque pesan demasiado"), xy=(x[k], y[k]), xytext=(-12, 10),
                         textcoords="offset points", ha="right", va="bottom", color=INK_SECONDARY, fontsize=10)
         _markers(ax, x, y, color, size=8)
         _keypoint(ax, 0.0, intercept, INK_SECONDARY, size=7)
@@ -1183,7 +1201,7 @@ _INHIBITION_LB_PATTERN = {
 
 def _inhibitor_label(i, unit):
     i = float(i)
-    return f"[I] = {i:g} {unit}" + (" (control)" if i == 0 else "")
+    return f"[I] = {i:g} {unit}" + (_t(" (control)") if i == 0 else "")
 
 
 def plot_inhibition_family(
@@ -1204,7 +1222,7 @@ def plot_inhibition_family(
         ax.fill_between(s, curves[-1][1], curves[0][1], color=_tint(_RED, 0.9),
                         zorder=1, linewidth=0)
         k = int(np.argmin(np.abs(s - s.max() * 0.62)))
-        ax.annotate("velocidad perdida\npor el inhibidor", xy=(s[k], 0.5 * (curves[0][1][k] + curves[-1][1][k])),
+        ax.annotate(_t("velocidad perdida\npor el inhibidor"), xy=(s[k], 0.5 * (curves[0][1][k] + curves[-1][1][k])),
                     ha="center", va="center", color=INK_SECONDARY, fontsize=10.5, zorder=6)
     for (i, v), color in zip(curves, colors):
         ax.plot(s, v, color=color, linewidth=2.6, label=_inhibitor_label(i, unit), zorder=3)
@@ -1213,7 +1231,7 @@ def plot_inhibition_family(
     ax.set_xlim(0, s.max())
     ax.set_ylim(bottom=0)
     if title is None:
-        title = _INHIBITION_NAMES.get(str(kind).lower(), "Inhibición")
+        title = _t(_INHIBITION_NAMES.get(str(kind).lower(), "Inhibición"))
     _finish(ax, xlabel, ylabel, title, subtitle)
     _legend(ax, loc="lower right")
     return fig
@@ -1260,26 +1278,25 @@ def plot_inhibition_lineweaver(
             yc = f0["slope"] * xc + f0["intercept"]
             if x_min <= xc <= x_max * 1.05:
                 _keypoint(ax, xc, yc, COLORS["ts"], size=9)
-                ax.annotate("aquí se cruzan", xy=(xc, yc), xytext=(-16, -30), textcoords="offset points",
+                ax.annotate(_t("aquí se cruzan"), xy=(xc, yc), xytext=(-16, -30), textcoords="offset points",
                             ha="right", va="top", color=INK, fontsize=10.5, fontweight="semibold")
         else:
-            ax.annotate("rectas paralelas: nunca se cruzan", xy=(0.03, 0.97), xycoords="axes fraction",
+            ax.annotate(_t("rectas paralelas: nunca se cruzan"), xy=(0.03, 0.97), xycoords="axes fraction",
                         ha="left", va="top", color=INK, fontsize=10.5, fontweight="semibold")
     ax.set_xlim(x_min, x_max * 1.05)
     ax.set_ylim(top=y_max * 1.15)
     kind = str(kind).lower()
     if title is None:
-        title = f"{_INHIBITION_NAMES.get(kind, 'Inhibición')}: Lineweaver–Burk"
+        title = f"{_t(_INHIBITION_NAMES.get(kind, 'Inhibición'))}: Lineweaver–Burk"
     if subtitle is None:
-        subtitle = _INHIBITION_LB_PATTERN.get(kind)
+        subtitle = _t(_INHIBITION_LB_PATTERN[kind]) if kind in _INHIBITION_LB_PATTERN else None
     _finish(ax, "1/[S]", "1/v₀", title, subtitle)
     _legend(ax, loc="upper left" if kind != "uncompetitive" else "lower right")
     return fig
 
 
 def plot_ode_simulation(
-    sim, title=r"Simulación del mecanismo E + S $\rightleftharpoons$ ES $\rightarrow$ E + P", subtitle=None, t_zoom=None,
-    xlabel="Tiempo (s)", ylabel="Concentración (µM)",
+    sim, title=None, subtitle=None, t_zoom=None, xlabel=None, ylabel=None,
 ):
     """Concentraciones E, S, ES y P frente al tiempo (diccionario de :func:`kinetics.simulate_mechanism`).
 
@@ -1287,6 +1304,10 @@ def plot_ode_simulation(
     a la derecha E y ES (escala pequeña), con ``t_zoom`` para ampliar el estado pre-estacionario (límite
     superior del tiempo en el panel derecho), donde se marca la meseta de estado estacionario de ES.
     """
+    if title is None:
+        title = _t("Simulación del mecanismo") + r" E + S $\rightleftharpoons$ ES $\rightarrow$ E + P"
+    xlabel = _t("Tiempo (s)") if xlabel is None else xlabel
+    ylabel = _t("Concentración (µM)") if ylabel is None else ylabel
     t = np.asarray(sim["t"], dtype=float)
     fig, (ax1, ax2) = figure(11.6, 4.8, nrows=1, ncols=2)
 
@@ -1301,12 +1322,12 @@ def plot_ode_simulation(
     ax1.fill_between(t, P, 0, color=COLORS["producto_p"], alpha=0.10, linewidth=0)
     ax1.plot(t, S, color=COLORS["sustrato"], linewidth=2.8)
     ax1.plot(t, P, color=COLORS["producto_p"], linewidth=2.8)
-    direct(ax1, t, S, "S · sustrato", COLORS["sustrato"], where=0.30, dy=10)
-    direct(ax1, t, P, "P · producto", COLORS["producto_p"], where=0.70, dy=-12)
+    direct(ax1, t, S, _t("S · sustrato"), COLORS["sustrato"], where=0.30, dy=10)
+    direct(ax1, t, P, _t("P · producto"), COLORS["producto_p"], where=0.70, dy=-12)
     ax1.set_xlim(t.min(), t.max())
     ax1.set_ylim(0, max(float(S.max()), float(P.max())) * 1.1)
     _finish(ax1, xlabel, ylabel)
-    ax1.set_title("El sustrato se gasta, el producto aparece", loc="left", fontsize=12.5, color=INK, pad=8)
+    ax1.set_title(_t("El sustrato se gasta, el producto aparece"), loc="left", fontsize=12.5, color=INK, pad=8)
 
     E, ES = np.asarray(sim["E"], dtype=float), np.asarray(sim["ES"], dtype=float)
     t_max = float(t_zoom) if t_zoom is not None else float(t.max())
@@ -1316,14 +1337,14 @@ def plot_ode_simulation(
     ax2.plot(t, ES, color=COLORS["complejo_es"], linewidth=2.8)
     tm, Em, ESm = t[mask], E[mask], ES[mask]
     if len(tm) > 3:
-        direct(ax2, tm, Em, "E · enzima libre", COLORS["enzima"], where=0.72, dy=8)
-        direct(ax2, tm, ESm, "ES · complejo", COLORS["complejo_es"], where=0.72, dy=-12)
+        direct(ax2, tm, Em, _t("E · enzima libre"), COLORS["enzima"], where=0.72, dy=8)
+        direct(ax2, tm, ESm, _t("ES · complejo"), COLORS["complejo_es"], where=0.72, dy=-12)
     if t_zoom is not None:
         ax2.set_xlim(0, float(t_zoom))
-        ax2.set_title("En milisegundos, ES llega a una meseta", loc="left", fontsize=12.5, color=INK, pad=8)
+        ax2.set_title(_t("En milisegundos, ES llega a una meseta"), loc="left", fontsize=12.5, color=INK, pad=8)
     else:
         ax2.set_xlim(t.min(), t.max())
-        ax2.set_title("Enzima libre y complejo ES", loc="left", fontsize=12.5, color=INK, pad=8)
+        ax2.set_title(_t("Enzima libre y complejo ES"), loc="left", fontsize=12.5, color=INK, pad=8)
     ax2.set_ylim(0, max(float(E.max()), float(ES.max())) * 1.18)
     _finish(ax2, xlabel, ylabel)
     _fig_title(fig, title, subtitle)
@@ -1331,13 +1352,14 @@ def plot_ode_simulation(
 
 
 def plot_initial_rates_from_ode(
-    s_values, v0, fit=None, ax=None, title="Michaelis–Menten emerge del mecanismo", subtitle=None,
+    s_values, v0, fit=None, ax=None, title=None, subtitle=None,
     xlabel="[S]₀ (µM)", ylabel="v₀ (µM/s)",
 ):
     """Velocidades iniciales obtenidas de la simulación (puntos) y ajuste de Michaelis–Menten (curva)."""
+    title = _t("Michaelis–Menten emerge del mecanismo") if title is None else title
     return plot_michaelis_menten(
         s_values, v0, fit=fit, ax=ax, title=title, subtitle=subtitle, xlabel=xlabel, ylabel=ylabel,
-        point_label="v₀ de la simulación (EDO)", curve_label="ajuste de Michaelis–Menten",
+        point_label=_t("v₀ de la simulación (EDO)"), curve_label=_t("ajuste de Michaelis–Menten"),
     )
 
 
@@ -1360,11 +1382,12 @@ def _celsius_axis(ax, transform, inverse, label="T (°C)"):
     return sec
 
 
-def plot_arrhenius(temperatures_k, rates, fit=None, ax=None, title="Gráfico de Arrhenius", subtitle=None, color=None):
+def plot_arrhenius(temperatures_k, rates, fit=None, ax=None, title=None, subtitle=None, color=None):
     """``ln k`` frente a ``1000/T``; ``fit`` es el diccionario de :func:`kinetics.fit_arrhenius`.
 
     La pendiente (−Ea/R) se dibuja como un triángulo y el eje superior muestra la temperatura en °C.
     """
+    title = _t("Gráfico de Arrhenius") if title is None else title
     t = np.asarray(temperatures_k, dtype=float)
     k = np.asarray(rates, dtype=float)
     color = color or COLORS["datos"]
@@ -1377,7 +1400,7 @@ def plot_arrhenius(temperatures_k, rates, fit=None, ax=None, title="Gráfico de 
         intercept = np.log(float(fit["a"]))
         ax.plot(xd, slope * xd + intercept, color=color, linewidth=2.6, zorder=2)
         xa, xb = x.min() + 0.25 * (x.max() - x.min()), x.min() + 0.6 * (x.max() - x.min())
-        _slope_triangle(ax, xa, xb, slope, intercept, "pendiente = −Ea/R", below=True)
+        _slope_triangle(ax, xa, xb, slope, intercept, _t("pendiente = −Ea/R"), below=True)
         _kbox(ax, 0.97, 0.95, f"Ea = {_num(fit['ea_kcal'])} kcal/mol\nR² = {fit['r2']:.4f}", ha="right", va="top")
     _markers(ax, x, np.log(k), color, size=8.5, zorder=5)
     _finish(ax, "1000/T (K⁻¹)", "ln k", title, subtitle)
@@ -1385,11 +1408,12 @@ def plot_arrhenius(temperatures_k, rates, fit=None, ax=None, title="Gráfico de 
     return fig
 
 
-def plot_eyring(temperatures_k, rates, fit=None, ax=None, title="Gráfico de Eyring", subtitle=None, color=None):
+def plot_eyring(temperatures_k, rates, fit=None, ax=None, title=None, subtitle=None, color=None):
     """``ln(k/T)`` frente a ``1/T``; ``fit`` es el diccionario de :func:`kinetics.fit_eyring`.
 
     La pendiente da ΔH‡ (−ΔH‡/R) y la ordenada en el origen ΔS‡; el eje superior muestra °C.
     """
+    title = _t("Gráfico de Eyring") if title is None else title
     t = np.asarray(temperatures_k, dtype=float)
     k = np.asarray(rates, dtype=float)
     color = color or COLORS["datos"]
@@ -1402,7 +1426,7 @@ def plot_eyring(temperatures_k, rates, fit=None, ax=None, title="Gráfico de Eyr
         slope = -float(fit["delta_h_kcal"]) / _kin.R_KCAL / 1000.0
         ax.plot(xd, slope * xd + intercept, color=color, linewidth=2.6, zorder=2)
         xa, xb = x.min() + 0.25 * (x.max() - x.min()), x.min() + 0.6 * (x.max() - x.min())
-        _slope_triangle(ax, xa, xb, slope, intercept, "pendiente = −ΔH‡/R", below=True)
+        _slope_triangle(ax, xa, xb, slope, intercept, _t("pendiente = −ΔH‡/R"), below=True)
         text = (f"ΔH‡ = {_num(fit['delta_h_kcal'])} kcal/mol\nΔS‡ = {_num(fit['delta_s_cal'])} cal/(mol·K)\n"
                 f"ΔG‡(298 K) = {_num(fit['delta_g_kcal'])} kcal/mol")
         _kbox(ax, 0.97, 0.95, text, ha="right", va="top")
@@ -1413,7 +1437,7 @@ def plot_eyring(temperatures_k, rates, fit=None, ax=None, title="Gráfico de Eyr
 
 
 def plot_ph_profile(
-    ph, v, ax=None, title="Perfil de pH", subtitle=None, pkas=None, xlabel="pH", ylabel="v₀ (µM/s)",
+    ph, v, ax=None, title=None, subtitle=None, pkas=None, xlabel="pH", ylabel="v₀ (µM/s)",
     color=None, fit_curve=None, pka_labels=None,
 ):
     """Actividad frente al pH (puntos; curva continua si se pasa ``fit_curve=(ph_denso, v_denso)``).
@@ -1421,6 +1445,7 @@ def plot_ph_profile(
     ``pkas=(pKa₁, pKa₂)`` añade guías verticales rotuladas y sombrea los flancos
     ácido y básico; ``pka_labels=(texto_ácido, texto_básico)`` rotula esos flancos.
     """
+    title = _t("Perfil de pH") if title is None else title
     ph = np.asarray(ph, dtype=float)
     v = np.asarray(v, dtype=float)
     color = color or COLORS["datos"]
@@ -1452,12 +1477,13 @@ def plot_ph_profile(
     return fig
 
 
-def plot_hill_plot(s, v, vmax, ax=None, title="Gráfico de Hill", subtitle=None, color=None, unit="mM"):
+def plot_hill_plot(s, v, vmax, ax=None, title=None, subtitle=None, color=None, unit="mM"):
     """Gráfico de Hill ``log₁₀(v/(Vmax − v))`` frente a ``log₁₀[S]`` con la pendiente ``n`` anotada.
 
     Incluye, como referencia, la recta de pendiente 1 (sin cooperatividad) que pasa por el mismo ``S₀.₅``:
     cuanto más empinados los datos respecto de esa recta, más cooperativa la enzima.
     """
+    title = _t("Gráfico de Hill") if title is None else title
     x, y = _kin.hill_plot(s, v, float(vmax))
     fit = _kin.linear_fit(x, y)
     color = color or COLORS["datos"]
@@ -1469,7 +1495,7 @@ def plot_hill_plot(s, v, vmax, ax=None, title="Gráfico de Hill", subtitle=None,
         log_s_half = -fit["intercept"] / fit["slope"]
         ax.plot(xd, xd - log_s_half, color=COLORS["michaelis_menten"], linewidth=1.6, linestyle=(0, (5, 4)), zorder=2,
                 alpha=0.8)
-        ax.annotate("referencia n = 1\n(sin cooperatividad)", xy=(xd[-1], xd[-1] - log_s_half), xytext=(-8, -12),
+        ax.annotate(_t("referencia n = 1\n(sin cooperatividad)"), xy=(xd[-1], xd[-1] - log_s_half), xytext=(-8, -12),
                     textcoords="offset points", ha="right", va="top", color=INK_SECONDARY, fontsize=10.5)
         _guide(ax, "v", log_s_half, start=float(np.min(y)), end=0.0)
         _keypoint(ax, log_s_half, 0.0, COLORS["ts"], size=9)
@@ -1477,7 +1503,7 @@ def plot_hill_plot(s, v, vmax, ax=None, title="Gráfico de Hill", subtitle=None,
                     textcoords="offset points", ha="left", va="top", color=INK, fontsize=11, fontweight="semibold")
     ax.plot(xd, fit["slope"] * xd + fit["intercept"], color=color, linewidth=2.6, zorder=3)
     _markers(ax, x, y, color, size=8.5, zorder=5)
-    _kbox(ax, 0.03, 0.95, f"pendiente n = {fit['slope']:.2f}\nR² = {fit['r2']:.4f}", ha="left", va="top")
+    _kbox(ax, 0.03, 0.95, _t("pendiente n = {n:.2f}").format(n=fit["slope"]) + f"\nR² = {fit['r2']:.4f}", ha="left", va="top")
     ax.set_xlim(xd[0], xd[-1])
     _finish(ax, "log₁₀[S]", "log₁₀(v / (Vmax − v))", title, subtitle)
     return fig
@@ -1771,11 +1797,11 @@ def datos(df, titulo, explicacion=None, x=None, y=None, calculadas=None, unidade
     formatos = formatos or {}
     rol = {}
     if x:
-        rol[x] = ("eje x", _BLUE)
+        rol[x] = (_t("eje x"), _BLUE)
     for c in ys:
-        rol[c] = ("eje y", _ORANGE)
+        rol[c] = (_t("eje y"), _ORANGE)
     for c in calculadas:
-        rol.setdefault(c, ("calculada", _VIOLET))
+        rol.setdefault(c, (_t("calculada"), _VIOLET))
     if barra is not None:
         col = pd_numeric = np.asarray(df[barra], dtype=float)
         lo, hi = np.nanmin(col), np.nanmax(col)
@@ -1806,7 +1832,7 @@ def datos(df, titulo, explicacion=None, x=None, y=None, calculadas=None, unidade
                   f'border-bottom:1.5px solid {AXIS};white-space:nowrap;vertical-align:bottom">{_esc(c)}{chip}{uni}</th>')
     if barra is not None:
         th.append(f'<th style="padding:8px 12px;border-bottom:1.5px solid {AXIS};min-width:120px;text-align:left;'
-                  f'color:{INK_MUTED};font-weight:600;font-size:11.5px;vertical-align:bottom">{_esc(barra)} en barra</th>')
+                  f'color:{INK_MUTED};font-weight:600;font-size:11.5px;vertical-align:bottom">{_esc(_t("{c} en barra").format(c=barra))}</th>')
     filas = []
     prev = None
     for i in keep:
@@ -1839,7 +1865,8 @@ def datos(df, titulo, explicacion=None, x=None, y=None, calculadas=None, unidade
         filas.append(f'<tr style="background:{fondo};{borde}">{"".join(tds)}</tr>')
     formulas = "".join(f'<div style="margin-top:4px"><span style="color:{_VIOLET};font-weight:650">{_esc(c)}</span> = {_esc(f)}</div>'
                        for c, f in calculadas.items())
-    recorte = (f'<div style="margin-top:6px">Se muestran {len(keep)} de {n_total} filas, repartidas a lo largo de la curva.</div>'
+    recorte = (f'<div style="margin-top:6px">'
+               f'{_esc(_t("Se muestran {k} de {n} filas, repartidas a lo largo de la curva.").format(k=len(keep), n=n_total))}</div>'
                if len(keep) < n_total else "")
     pie = (f'<div style="font-size:13px;color:{INK_SECONDARY};margin:12px 4px 0;line-height:1.45">{formulas}{recorte}'
            f'{f"<div style=margin-top:6px>{_esc(nota)}</div>" if nota else ""}</div>')
@@ -1851,8 +1878,9 @@ def datos(df, titulo, explicacion=None, x=None, y=None, calculadas=None, unidade
         f'<details {"open" if abierta else ""} style="font-family:{_CARD_FONT};font-size:13.5px;background:{SURFACE};'
         f'border:1px solid {GRID};border-radius:18px;padding:12px 16px;max-width:960px;margin:8px 0">'
         f'<summary style="cursor:pointer;font-size:15px;font-weight:650;color:{INK};list-style-position:inside">'
-        f'📋 Los datos de la gráfica: {_esc(titulo)} <span style="font-weight:500;color:{INK_MUTED};font-size:13px">'
-        f'· {n_total} {"punto" if n_total == 1 else "puntos"} · clic para {"ocultar" if abierta else "ver"}</span></summary>'
+        f'📋 {_esc(_t("Los datos de la gráfica:"))} {_esc(titulo)} <span style="font-weight:500;color:{INK_MUTED};font-size:13px">'
+        f'· {n_total} {_esc(_t("punto") if n_total == 1 else _t("puntos"))} · '
+        f'{_esc(_t("clic para ocultar") if abierta else _t("clic para ver"))}</span></summary>'
         f'<div style="margin-top:10px">{expl}<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%">'
         f'<thead><tr>{"".join(th)}</tr></thead><tbody>{"".join(filas)}</tbody></table></div>{pie}</div></details>')
 
@@ -1865,11 +1893,11 @@ def duracion(segundos):
     """Una duración en palabras: «0.3 ms», «17 s», «2.4 h», «12 años»…"""
     s = float(segundos)
     for limite, div, unidad in ((1e-6, 1e-9, "ns"), (1e-3, 1e-6, "µs"), (1, 1e-3, "ms"), (60, 1, "s"), (3600, 60, "min"),
-                                (86400, 3600, "h"), (86400 * 365, 86400, "días")):
+                                (86400, 3600, "h"), (86400 * 365, 86400, _t("días"))):
         if s < limite:
             return f"{s / div:.3g} {unidad}"
     anos = s / (86400 * 365.25)
     if anos < 1e4:
-        return f"{anos:.3g} años"
+        return f"{anos:.3g} {_t('años')}"
     m, e = f"{anos:.1e}".split("e")
-    return f"{m} × 10{_superindice(int(e))} años"
+    return f"{m} × 10{_superindice(int(e))} {_t('años')}"
