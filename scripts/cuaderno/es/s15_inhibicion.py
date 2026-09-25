@@ -1,5 +1,5 @@
 """Sección 15. Inhibidores y activadores."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 15. inhibición
 md(r"""

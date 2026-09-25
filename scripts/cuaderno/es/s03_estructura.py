@@ -1,5 +1,5 @@
 """Sección 3. estructura."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 3. estructura
 md(r"""

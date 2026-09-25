@@ -1,5 +1,5 @@
 """Sección 2. velocidad."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 2. velocidad
 md(r"""

@@ -1,5 +1,5 @@
 """Sección 8. R, P y escaneo."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 8. R, P y escaneo
 

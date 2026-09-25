@@ -20,12 +20,20 @@ ROOT = Path(__file__).resolve().parents[2]
 ILUSTRACIONES = ROOT / "assets" / "ilustraciones"
 
 CELLS: list = []
+IDIOMA = "es"          # carpeta de ilustraciones: assets/ilustraciones/<IDIOMA>/
+
+
+def reiniciar(idioma):
+    """Empieza un cuaderno nuevo en ``idioma`` ("es" o "en")."""
+    global IDIOMA
+    CELLS.clear()
+    IDIOMA = idioma
 _FIG = re.compile(r"\[\[fig:\s*([\w\-]+)\s*(?:\|\s*([^\]]*?))?\s*\]\]")
 
 
 def _imagen(m):
     nombre, alt = m.group(1), (m.group(2) or m.group(1)).strip()
-    png = ILUSTRACIONES / f"{nombre}.png"
+    png = ILUSTRACIONES / IDIOMA / f"{nombre}.png"
     datos = base64.b64encode(png.read_bytes()).decode("ascii")
     return f"![{alt}](data:image/png;base64,{datos})"
 

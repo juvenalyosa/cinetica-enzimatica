@@ -1,5 +1,5 @@
 """Sección 16. Temperatura y pH."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 16. T y pH
 md(r"""

@@ -1,5 +1,5 @@
 """Sección 6. Eyring."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 6. Eyring
 md(r"""

@@ -1,5 +1,5 @@
 """Sección 10. mejoras."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 10. mejoras
 

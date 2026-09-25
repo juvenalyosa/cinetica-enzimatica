@@ -1,5 +1,5 @@
 """Sección 14. Cooperatividad (Hill)."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 14. Hill
 md(r"""

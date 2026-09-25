@@ -1,5 +1,5 @@
 """Sección 11. agua."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 11. agua
 

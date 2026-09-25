@@ -1,5 +1,5 @@
 """Sección 0. portada."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 0. portada
 md(r"""
@@ -120,7 +120,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from enzimas import kinetics as cin, viz, datos, interactivo, visor3d
+from enzimas import kinetics as cin, viz, datos, interactivo, visor3d, textos
+textos.usar("es")                           # idioma de gráficas, tarjetas y visores
 viz.apply_style()
 
 def leer(nombre):

@@ -1,5 +1,5 @@
 """Sección 13. Michaelis–Menten desde el mecanismo."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 13. MM
 md(r"""

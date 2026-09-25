@@ -1,5 +1,5 @@
 """Sección 9. TS."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 9. TS
 

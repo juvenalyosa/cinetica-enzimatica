@@ -1,5 +1,5 @@
 """Sección 4. preparación."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 4. preparación
 md(r"""

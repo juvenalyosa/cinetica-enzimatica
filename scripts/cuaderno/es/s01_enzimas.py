@@ -1,5 +1,5 @@
 """Sección 1. enzimas."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 1. enzimas
 md(r"""

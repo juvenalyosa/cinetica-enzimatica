@@ -1,5 +1,5 @@
 """Sección 7. QM/MM."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 7. QM/MM
 

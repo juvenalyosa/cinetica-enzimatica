@@ -1,5 +1,5 @@
 """Sección 12. barrera -> kcat."""
-from .celdas import code, md
+from ..celdas import code, md
 
 # ============================================================================ 12. barrera -> kcat
 

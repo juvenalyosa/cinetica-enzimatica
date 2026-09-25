@@ -21,7 +21,30 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 
 ROOT = Path(__file__).resolve().parents[2]
-SALIDA = ROOT / "assets" / "ilustraciones"
+BASE = ROOT / "assets" / "ilustraciones"
+SALIDA = BASE / "es"
+
+# ---------------------------------------------------------------- idioma
+# Los textos de las figuras se escriben en español; en inglés, cada texto que pasa por ``texto``, ``mate`` o
+# ``pastilla`` (títulos, etiquetas, notas…) se busca en ``traduccion_en.FIG_EN``. Lo que falte queda en ``faltan``.
+IDIOMA = "es"
+faltan: set = set()
+
+
+def usar(idioma):
+    global IDIOMA, SALIDA
+    IDIOMA = idioma
+    SALIDA = BASE / idioma
+
+
+def traducir(s):
+    if IDIOMA == "es" or not isinstance(s, str) or not s.strip():
+        return s
+    from .traduccion_en import FIG_EN
+    if s in FIG_EN:
+        return FIG_EN[s]
+    faltan.add(s)
+    return s
 
 # ---------------------------------------------------------------- sistema de diseño (= viz.py)
 SUPERFICIE = "#fcfcfb"
@@ -88,7 +111,7 @@ class Lienzo:
                                f'fill="{SUPERFICIE}" stroke="{REJILLA}" stroke-width="2"/>')
         y = 52
         if etiqueta:
-            self.pastilla(40, 30, etiqueta, color=etiqueta_color(etiqueta))
+            self.pastilla(40, 30, etiqueta, color=etiqueta_color(traducir(etiqueta)))
             y = 96
         if titulo:
             self.texto(40, y, titulo, size=27, weight=600)
@@ -165,7 +188,7 @@ class Lienzo:
               lineas=1.3, rot=None, opacity=None):
         """Texto; ``s`` puede ser lista (varias líneas) o contener marcado ligero:
         ``_{sub}`` subíndice, ``^{sup}`` superíndice, ``*cursiva*`` y ``**negrita**``."""
-        filas = s if isinstance(s, (list, tuple)) else [s]
+        filas = [traducir(f) for f in (s if isinstance(s, (list, tuple)) else [s])]
         tr = f' transform="rotate({rot} {_num(float(x))} {_num(float(y))})"' if rot else ""
         for i, fila in enumerate(filas):
             yy = y + i * size * lineas
@@ -178,6 +201,7 @@ class Lienzo:
 
     def pastilla(self, x, y, s, *, color=AZUL, size=14, anchor="start", relleno=None):
         """Etiqueta en forma de píldora: punto de color + texto en tinta."""
+        s = traducir(s)
         ancho = ancho_texto(s.upper(), size - 1, bold=True) + 34
         x0 = x - ancho if anchor == "end" else (x - ancho / 2 if anchor == "middle" else x)
         self.rect(x0, y - size - 5, ancho, size + 16, rx=(size + 16) / 2, fill=relleno or tinte(color, 0.86))
@@ -223,11 +247,11 @@ def etiqueta_color(s):
     s = s.lower()
     if "analog" in s:
         return NARANJA
-    if "ecuaci" in s or "términ" in s:
+    if "ecuaci" in s or "términ" in s or "equation" in s or "term by term" in s:
         return AZUL
-    if "simula" in s or "cálcul" in s or "modelo" in s:
+    if "simula" in s or "cálcul" in s or "modelo" in s or "model" in s or "calculat" in s:
         return VIOLETA
-    if "dato" in s or "experim" in s:
+    if "dato" in s or "experim" in s or "data" in s:
         return AGUA
     return TINTA3
 
